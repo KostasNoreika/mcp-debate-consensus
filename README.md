@@ -2,8 +2,9 @@
 
 A Model Context Protocol (MCP) server that orchestrates multi-model debates using different Large Language Models to reach consensus on complex questions.
 
-## 🚀 Quick Start (No Claude CLI Required!)
+## 🚀 Quick Start
 
+### Option 1: Full Claude CLI Mode (Recommended - with MCP tools!)
 ```bash
 # 1. Clone & install
 git clone https://github.com/KostasNoreika/mcp-debate-consensus.git
@@ -13,21 +14,34 @@ cd mcp-debate-consensus && npm install
 cp .env.example .env
 # Edit .env and add your OpenRouter API key
 
-# 3. Start proxy (in separate terminal)
-cd claude-router && npm install && node proxy.js
+# 3. Install Claude CLI (if not already installed)
+npm install -g @anthropic/claude-cli
 
-# 4. Run debate directly - NO Claude CLI needed!
-node test-direct-debate.js "What's the best architecture for a chat app?"
+# 4. Start the k-proxy server (maps k1-k4 to different models)
+node k-proxy-server.js
+
+# 5. Run debate with full MCP tool access!
+node test-claude-cli-debate.js "What's the best architecture for a chat app?"
 ```
 
-The system works standalone - Claude CLI is NOT required!
+### Option 2: Simple HTTP Mode (No tools, faster)
+```bash
+# Start simple proxy
+cd claude-router && node proxy.js
+
+# Run simple debate (no MCP tools)
+node test-direct-debate.js "Your question here"
+```
 
 ## Features
 
-- **Multi-Model Consensus**: Combines insights from 4 different state-of-the-art LLMs
+- **Two Modes Available**:
+  - **Full Mode**: Each model runs as real Claude CLI with complete MCP tool access (file operations, bash, Git, Docker, etc.)
+  - **Simple Mode**: Direct HTTP calls for faster responses without tool access
+- **Multi-Model Consensus**: Combines insights from 4 different LLMs (Claude, GPT-4, Qwen, Gemini)
 - **Turn-Based Debate**: Models see and build upon each other's responses
 - **Semantic Scoring**: Advanced scoring algorithm evaluating relevance, novelty, quality, and coherence
-- **Synchronous Execution**: Clean, direct execution model with MCP's long-running operation support
+- **MCP Tool Integration**: In full mode, models can read files, run commands, search code, manage Git, etc.
 - **Comprehensive Logging**: Detailed debate history and decision tracking
 
 ## How It Works
