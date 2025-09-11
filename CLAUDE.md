@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 🛑 CRITICAL RULES - NEVER VIOLATE 🛑
 
 1. **NEVER CHANGE MODEL CONFIGURATIONS**: The k1-k4 model aliases are FIXED and must NEVER be changed to different models unless the user explicitly requests a specific model change.
+   
+   **NOTE**: The k1-k4 aliases are NOT OS-level aliases. They are handled internally by the proxy server (`claude-router/proxy.js`). No alias setup is required - just start the proxy server.
    - k1 MUST remain: `anthropic/claude-opus-4.1`
    - k2 MUST remain: `openai/gpt-5-chat`
    - k3 MUST remain: `qwen/qwen3-max`

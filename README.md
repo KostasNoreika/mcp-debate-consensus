@@ -28,20 +28,29 @@ node test-direct-debate.js "What's the best architecture for a chat app?"
 - **Synchronous Execution**: Clean, direct execution model with MCP's long-running operation support
 - **Comprehensive Logging**: Detailed debate history and decision tracking
 
-## Models Used
+## How It Works
 
-The server uses four specialized models via OpenRouter:
+The system uses **k1-k4 aliases** that are handled internally by the proxy server (no OS-level alias setup needed):
 
 - **k1**: Claude Opus 4.1 - Architecture and system design
 - **k2**: GPT-5 - Testing strategies and debugging
 - **k3**: Qwen 3 Max - Algorithm optimization
 - **k4**: Gemini 2.5 Pro - Integration and completeness
 
+These aliases work through the included proxy server (`claude-router/proxy.js`) which routes requests to the appropriate models via OpenRouter API.
+
 ## Prerequisites
 
 - Node.js 18+ 
 - OpenRouter API key (get from [OpenRouter](https://openrouter.ai/keys))
 - Claude CLI (for MCP integration)
+
+## Platform Support
+
+✅ **Works on all platforms**: Windows, macOS, Linux
+- No OS-specific aliases or scripts needed
+- Everything runs through Node.js
+- Proxy server handles all model routing internally
 
 ## Installation
 
