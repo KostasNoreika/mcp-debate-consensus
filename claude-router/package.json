@@ -1,0 +1,14 @@
+{
+  "name": "debate-consensus-proxy",
+  "version": "1.0.0",
+  "description": "Proxy for k1-k4 models via OpenRouter",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.0.3"
+  }
+}

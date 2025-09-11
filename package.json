@@ -1,0 +1,55 @@
+{
+  "name": "mcp-debate-consensus",
+  "version": "1.0.0",
+  "description": "MCP server orchestrating multi-model debates for consensus building",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mcp-debate-consensus.git"
+  },
+  "homepage": "https://github.com/yourusername/mcp-debate-consensus#readme",
+  "bugs": {
+    "url": "https://github.com/yourusername/mcp-debate-consensus/issues"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "NODE_ENV=development node index.js",
+    "prod": "NODE_ENV=production node index.js",
+    "test": "NODE_ENV=test jest",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:coverage": "NODE_ENV=test jest --coverage",
+    "test:mcp": "node test-mcp-client.js",
+    "test:models": "./test-consensus.sh",
+    "validate": "node -e \"const { config } = require('./src/config'); try { config.validate(); console.log('✅ Configuration is valid'); } catch (e) { console.error('❌ Configuration validation failed:', e.message); process.exit(1); }\"",
+    "config:show": "node -e \"const { config } = require('./src/config'); console.log(JSON.stringify(config.getAll(), null, 2));\"",
+    "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\"",
+    "lint": "echo 'Linting not configured yet'",
+    "clean": "rm -rf logs/* coverage node_modules/.cache"
+  },
+  "keywords": [
+    "mcp",
+    "llm",
+    "consensus",
+    "synthesis",
+    "claude",
+    "openrouter"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "axios": "^1.11.0",
+    "dotenv": "^16.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.1.3",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.1"
+  }
+}

@@ -1,0 +1,58 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.keys
+*.env
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+test-output/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+.cache/
+
+# API Keys and Secrets
+*-key
+*-secret
+*.key
+*.pem
+*.cert
+
+# Claude CLI files
+.claude.json
+~/.claude*
+.claude-models
+.claude-k-models
+
+# Proxy server pid files
+*.pid
+
+# Test artifacts
+test-results/
+*.test.json
