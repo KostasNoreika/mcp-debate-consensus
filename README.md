@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server that orchestrates multi-model debates using different Large Language Models to reach consensus on complex questions.
 
-## 🚀 Quick Start
+## 🚀 Quick Start (No Claude CLI Required!)
 
 ```bash
 # 1. Clone & install
@@ -16,9 +16,11 @@ cp .env.example .env
 # 3. Start proxy (in separate terminal)
 cd claude-router && npm install && node proxy.js
 
-# 4. Test it!
+# 4. Run debate directly - NO Claude CLI needed!
 node test-direct-debate.js "What's the best architecture for a chat app?"
 ```
+
+The system works standalone - Claude CLI is NOT required!
 
 ## Features
 
@@ -43,7 +45,7 @@ These aliases work through the included proxy server (`claude-router/proxy.js`) 
 
 - Node.js 18+ 
 - OpenRouter API key (get from [OpenRouter](https://openrouter.ai/keys))
-- Claude CLI (for MCP integration)
+- Optional: Any MCP-compatible client (Claude Desktop, Claude CLI, etc.) - only if you want to use as MCP server
 
 ## Platform Support
 
@@ -98,9 +100,22 @@ node proxy.js
 
 ## Usage
 
-### As an MCP Server
+### Standalone Mode (No Claude CLI needed!)
 
-1. Register the server in your `~/.claude.json`:
+Run debates directly from command line:
+```bash
+# Start proxy server first
+cd claude-router && node proxy.js &
+
+# Run a debate
+node test-direct-debate.js "What's the best architecture for a chat app?"
+```
+
+### As an MCP Server (Optional)
+
+For integration with MCP-compatible clients (Claude Desktop, Claude CLI, etc.):
+
+1. Register the server in your MCP client config (e.g., `~/.claude.json` for Claude):
 ```json
 {
   "mcpServers": {
