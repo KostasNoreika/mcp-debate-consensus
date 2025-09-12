@@ -18,17 +18,23 @@ app.use(express.json({ limit: '50mb' }));
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
+// Configurable timeout (default: 60 minutes)
+const DEBATE_TIMEOUT_MINUTES = parseInt(process.env.DEBATE_TIMEOUT_MINUTES) || 60;
+const TIMEOUT_MS = DEBATE_TIMEOUT_MINUTES * 60 * 1000; // Convert to milliseconds
+
 if (!OPENROUTER_API_KEY) {
   console.error('ERROR: OPENROUTER_API_KEY environment variable is required');
   process.exit(1);
 }
 
-// Model mapping for k1-k4 (updated with actually available models)
+console.log(`⏱️  Timeout configured: ${DEBATE_TIMEOUT_MINUTES} minutes (${TIMEOUT_MS}ms)`);
+
+// Model mapping for k1-k4 (updated with specified OpenRouter models)
 const modelMap = {
-  'k1': 'anthropic/claude-3-5-sonnet-20241022',  // Architecture expert (Claude 3.5 Sonnet)
-  'k2': 'openai/gpt-4o',                         // Testing expert (GPT-4o)
-  'k3': 'qwen/qwen-2.5-72b-instruct',           // Algorithm expert (Qwen 2.5)
-  'k4': 'google/gemini-pro-1.5'                 // Integration expert (Gemini Pro)
+  'k1': 'anthropic/claude-opus-4.1',    // Architecture expert (Claude Opus 4.1)
+  'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
+  'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
+  'k4': 'google/gemini-2.5-pro'        // Integration expert (Gemini 2.5 Pro)
 };
 
 // Port mapping for each k instance
@@ -75,7 +81,7 @@ function createProxyServer(kInstance) {
             'HTTP-Referer': 'http://localhost:' + port,
             'X-Title': `Debate Consensus MCP - ${kInstance}`
           },
-          timeout: 120000 // 2 minutes
+          timeout: TIMEOUT_MS
         }
       );
       
@@ -104,11 +110,39 @@ function createProxyServer(kInstance) {
       res.json(claudeResponse);
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ${kInstance} error:`, error.response?.data || error.message);
+      const timestamp = new Date().toISOString();
+      const errorType = error.code === 'ECONNABORTED' ? 'timeout' : 
+                       error.response?.status === 401 ? 'authentication' :
+                       error.response?.status === 403 ? 'authorization' :
+                       error.response?.status === 429 ? 'rate_limit' :
+                       error.response?.status >= 500 ? 'server_error' : 'unknown';
+      
+      const errorDetails = {
+        model: model,
+        instance: kInstance,
+        errorType: errorType,
+        statusCode: error.response?.status,
+        originalMessage: error.response?.data?.error?.message || error.message,
+        timestamp: timestamp
+      };
+      
+      console.error(`[${timestamp}] ${kInstance} (${model}) failed:`, {
+        type: errorType,
+        status: error.response?.status,
+        message: error.response?.data?.error?.message || error.message,
+        details: error.response?.data
+      });
+      
       res.status(error.response?.status || 500).json({
         error: {
-          message: error.response?.data?.error?.message || error.message,
-          type: 'proxy_error'
+          message: `Model ${kInstance} (${model}) failed: ${errorType === 'timeout' ? `Request timed out after ${DEBATE_TIMEOUT_MINUTES} minutes` : 
+                   errorType === 'authentication' ? 'Invalid API key' :
+                   errorType === 'authorization' ? 'Access denied to model' :
+                   errorType === 'rate_limit' ? 'Rate limit exceeded' :
+                   errorType === 'server_error' ? 'OpenRouter server error' :
+                   error.response?.data?.error?.message || error.message}`,
+          type: 'proxy_error',
+          details: errorDetails
         }
       });
     }
@@ -153,8 +187,9 @@ process.on('SIGINT', () => {
 });
 
 console.log('\n📡 K-Proxy Server Status:');
-console.log('k1 (Claude 3.5 Sonnet):  http://localhost:3457');
-console.log('k2 (GPT-4o):             http://localhost:3458'); 
-console.log('k3 (Qwen 2.5):           http://localhost:3459');
-console.log('k4 (Gemini Pro 1.5):     http://localhost:3460');
-console.log('\nPress Ctrl+C to stop all proxies\n');
+console.log('k1 (Claude Opus 4.1):    http://localhost:3457');
+console.log('k2 (GPT-5):              http://localhost:3458'); 
+console.log('k3 (Qwen 3 Max):         http://localhost:3459');
+console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460');
+console.log(`\nTimeout: ${DEBATE_TIMEOUT_MINUTES} minutes per request (configurable via DEBATE_TIMEOUT_MINUTES env var)`);
+console.log('Press Ctrl+C to stop all proxies\n');

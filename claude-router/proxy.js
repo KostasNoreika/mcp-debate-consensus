@@ -20,7 +20,7 @@ if (!OPENROUTER_API_KEY) {
 // Model mapping based on MODEL_OVERRIDE environment variable
 const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',
-  'k2': 'openai/gpt-5-chat',
+  'k2': 'openai/gpt-5',
   'k3': 'qwen/qwen3-max',
   'k4': 'google/gemini-2.5-pro'
 };

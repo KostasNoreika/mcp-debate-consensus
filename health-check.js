@@ -272,6 +272,39 @@ class HealthCheck {
       return false;
     }
     
+    // Test basic API connection first
+    const basicTest = await this.testBasicAPI();
+    if (!basicTest) return false;
+    
+    // Test each model specified in the requirements
+    const modelsToTest = [
+      { name: 'k1', model: 'anthropic/claude-opus-4.1', description: 'Claude Opus 4.1' },
+      { name: 'k2', model: 'openai/gpt-5', description: 'GPT-5' },
+      { name: 'k3', model: 'qwen/qwen3-max', description: 'Qwen 3 Max' },
+      { name: 'k4', model: 'google/gemini-2.5-pro', description: 'Gemini 2.5 Pro' }
+    ];
+    
+    let allModelsAccessible = true;
+    
+    for (const modelInfo of modelsToTest) {
+      const isAccessible = await this.testModelAccess(modelInfo);
+      if (!isAccessible) {
+        allModelsAccessible = false;
+      }
+    }
+    
+    if (allModelsAccessible) {
+      this.results.passed.push('All required models accessible');
+      this.log('All required models accessible ✓', 'success');
+    } else {
+      this.results.warnings.push('Some models not accessible');
+      this.log('Some models may not be accessible', 'warning');
+    }
+    
+    return basicTest;
+  }
+  
+  async testBasicAPI() {
     return new Promise((resolve) => {
       const data = JSON.stringify({
         model: 'openai/gpt-3.5-turbo',
@@ -307,6 +340,55 @@ class HealthCheck {
       req.on('error', (error) => {
         this.results.failed.push('API connection failed');
         this.log(`API connection failed: ${error.message}`, 'error');
+        resolve(false);
+      });
+      
+      req.write(data);
+      req.end();
+    });
+  }
+  
+  async testModelAccess(modelInfo) {
+    return new Promise((resolve) => {
+      const data = JSON.stringify({
+        model: modelInfo.model,
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 1
+      });
+      
+      const req = require('https').request({
+        hostname: 'openrouter.ai',
+        path: '/api/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Content-Length': data.length
+        }
+      }, (res) => {
+        if (res.statusCode === 200) {
+          this.log(`  - ${modelInfo.name} (${modelInfo.description}) ✓`, 'success');
+          resolve(true);
+        } else if (res.statusCode === 404) {
+          this.log(`  - ${modelInfo.name} (${modelInfo.description}) - Model not found`, 'warning');
+          resolve(false);
+        } else if (res.statusCode === 403) {
+          this.log(`  - ${modelInfo.name} (${modelInfo.description}) - Access denied`, 'warning');
+          resolve(false);
+        } else {
+          this.log(`  - ${modelInfo.name} (${modelInfo.description}) - HTTP ${res.statusCode}`, 'warning');
+          resolve(false);
+        }
+      });
+      
+      req.on('error', (error) => {
+        this.log(`  - ${modelInfo.name} (${modelInfo.description}) - Connection error`, 'warning');
+        resolve(false);
+      });
+      
+      req.setTimeout(10000, () => {
+        req.destroy();
+        this.log(`  - ${modelInfo.name} (${modelInfo.description}) - Timeout`, 'warning');
         resolve(false);
       });
       

@@ -61,10 +61,10 @@ class DebateHistory {
         const id = file.replace('.json', '');
         const data = await this.get(id);
         debates.push({
-          id: data.id,
+          id: data.id || id,
           timestamp: data.timestamp,
           question: data.question,
-          winner: data.initialWinner,
+          winner: data.winner || data.initialWinner,
           score: data.score
         });
       } catch (error) {

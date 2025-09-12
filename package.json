@@ -14,6 +14,7 @@
   "scripts": {
     "start": "node index.js",
     "proxy": "node k-proxy-server.js",
+    "setup": "node setup.js",
     "test": "node test-debate.js 'Test debate functionality'",
     "test:all": "npm run health && npm test",
     "health": "node health-check.js",

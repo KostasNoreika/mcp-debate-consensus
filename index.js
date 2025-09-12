@@ -1,6 +1,9 @@
 const { ClaudeCliDebate } = require('./src/claude-cli-debate.js');
 const { DebateHistory } = require('./src/history.js');
 const { Security } = require('./src/security.js');
+const { spawn } = require('child_process');
+const axios = require('axios');
+const path = require('path');
 
 // Create dynamic imports for MCP SDK since it uses ES modules
 let Server, StdioServerTransport, ListToolsRequestSchema, CallToolRequestSchema;
@@ -28,12 +31,17 @@ class DebateConsensusMCP {
         this.history = new DebateHistory();
         this.security = new Security();
         this.initialized = false;
+        this.proxyProcess = null;
+        this.PROXY_PORT = 3456;
     }
 
     async initialize() {
         if (this.initialized) return;
         
         await initializeMCPModules();
+        
+        // Start proxy server if not running
+        await this.ensureProxyServerRunning();
         
         this.server = new Server(
             { name: 'debate-consensus', version: '1.0.0' },
@@ -134,10 +142,12 @@ class DebateConsensusMCP {
                     };
                 }
                 
-                const response = debates.map(d => 
-                    `[${new Date(d.timestamp).toISOString()}] ${d.id}\n` +
-                    `Q: ${d.question}\nWinner: ${d.winner} (${d.score.toFixed(2)})`
-                ).join('\n\n');
+                const response = debates.map(d => {
+                    const displayScore = (typeof d.score === 'number') ? d.score.toFixed(2) : 
+                                         (d.score && typeof d.score.total === 'number') ? d.score.total.toFixed(2) : 'N/A';
+                    return `[${new Date(d.timestamp).toISOString()}] ${d.id}\n` +
+                           `Q: ${d.question}\nWinner: ${d.winner} (${displayScore})`;
+                }).join('\n\n');
                 
                 return {
                     content: [{
@@ -147,6 +157,92 @@ class DebateConsensusMCP {
                 };
             }
         });
+    }
+    
+    /**
+     * Check if proxy server is running and start it if needed
+     */
+    async ensureProxyServerRunning() {
+        try {
+            // Check if proxy is already running
+            await axios.get(`http://localhost:${this.PROXY_PORT}/health`, { timeout: 2000 });
+            console.error(`✅ K-Proxy server already running on port ${this.PROXY_PORT}`);
+            return;
+        } catch (error) {
+            // Proxy not running, start it
+            console.error(`🚀 Starting k-proxy server on port ${this.PROXY_PORT}...`);
+            await this.startProxyServer();
+        }
+    }
+    
+    /**
+     * Start the k-proxy server as a child process
+     */
+    async startProxyServer() {
+        return new Promise((resolve, reject) => {
+            const proxyScript = path.join(__dirname, 'k-proxy-server.js');
+            
+            this.proxyProcess = spawn('node', [proxyScript], {
+                cwd: __dirname,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                detached: false
+            });
+            
+            let startupOutput = '';
+            let errorOutput = '';
+            
+            // Capture startup output
+            this.proxyProcess.stdout.on('data', (data) => {
+                startupOutput += data.toString();
+                console.error('[K-PROXY]', data.toString().trim());
+                
+                // Check for successful startup indicators
+                if (startupOutput.includes('proxy running on http://localhost')) {
+                    console.error('✅ K-Proxy server started successfully');
+                    resolve();
+                }
+            });
+            
+            this.proxyProcess.stderr.on('data', (data) => {
+                errorOutput += data.toString();
+                console.error('[K-PROXY ERROR]', data.toString().trim());
+            });
+            
+            this.proxyProcess.on('error', (error) => {
+                console.error('❌ Failed to start k-proxy server:', error.message);
+                reject(new Error(`Failed to start k-proxy server: ${error.message}`));
+            });
+            
+            this.proxyProcess.on('exit', (code, signal) => {
+                if (code !== 0 && code !== null) {
+                    console.error(`❌ K-Proxy server exited with code ${code}`);
+                    console.error('Error output:', errorOutput);
+                    reject(new Error(`K-Proxy server failed to start (exit code: ${code})`));
+                }
+            });
+            
+            // Timeout after 10 seconds if not started
+            setTimeout(() => {
+                if (!startupOutput.includes('proxy running on http://localhost')) {
+                    console.error('❌ K-Proxy server startup timeout');
+                    if (this.proxyProcess) {
+                        this.proxyProcess.kill();
+                    }
+                    reject(new Error('K-Proxy server startup timeout'));
+                }
+            }, 10000);
+        });
+    }
+    
+    /**
+     * Cleanup proxy process on shutdown
+     */
+    cleanup() {
+        if (this.proxyProcess) {
+            console.error('🛑 Stopping k-proxy server...');
+            this.proxyProcess.kill();
+            this.proxyProcess = null;
+        }
     }
     
     formatResponse(question, result, historyId) {
@@ -159,7 +255,8 @@ class DebateConsensusMCP {
 **Question:** ${question}
 **History ID:** ${historyId}
 **Winner:** ${result.winner}
-**Score:** ${result.score.toFixed(2)}
+**Score:** ${(typeof result.score === 'number') ? result.score.toFixed(2) : 
+             (result.score && typeof result.score.total === 'number') ? result.score.total.toFixed(2) : 'N/A'}
 **Contributors:** ${result.contributors.join(', ')}
 
 ## Solution
@@ -173,6 +270,17 @@ ${solution}
     }
     
     async run() {
+        // Handle graceful shutdown
+        process.on('SIGINT', () => {
+            this.cleanup();
+            process.exit(0);
+        });
+        
+        process.on('SIGTERM', () => {
+            this.cleanup();
+            process.exit(0);
+        });
+        
         await this.initialize();
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
@@ -251,7 +359,7 @@ class DebateConsensusMCPTest {
                         return {
                             content: [{
                                 type: 'text',
-                                text: `✅ Debate Complete!\n\n**Question:** ${args.question}\n**History ID:** ${id}\n**Winner:** ${result.winner}\n**Score:** ${result.score.toFixed(2)}\n**Contributors:** ${result.contributors.join(', ')}\n\n## Solution\n\n${result.solution}\n\n---\n*Multi-model consensus reached using k1-k4 models*`
+                                text: `✅ Debate Complete!\n\n**Question:** ${args.question}\n**History ID:** ${id}\n**Winner:** ${result.winner}\n**Score:** ${(typeof result.score === 'number') ? result.score.toFixed(2) : (result.score && typeof result.score.total === 'number') ? result.score.total.toFixed(2) : 'N/A'}\n**Contributors:** ${result.contributors.join(', ')}\n\n## Solution\n\n${result.solution}\n\n---\n*Multi-model consensus reached using k1-k4 models*`
                             }]
                         };
                     }
@@ -263,7 +371,7 @@ class DebateConsensusMCPTest {
                                 type: 'text',
                                 text: debates.map(d => 
                                     `[${new Date(d.timestamp).toISOString()}] ${d.id}\n` +
-                                    `Q: ${d.question}\nWinner: ${d.winner} (${d.score.toFixed(2)})`
+                                    `Q: ${d.question}\nWinner: ${d.winner} (${(typeof d.score === 'number') ? d.score.toFixed(2) : (d.score && typeof d.score.total === 'number') ? d.score.total.toFixed(2) : 'N/A'})`
                                 ).join('\n\n')
                             }]
                         };

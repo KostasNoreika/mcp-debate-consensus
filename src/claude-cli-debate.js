@@ -48,7 +48,12 @@ class ClaudeCliDebate {
     
     this.logsDir = '/opt/mcp/servers/debate-consensus/logs';
     this.semanticScorer = new ImprovedSemanticScoring();
-    this.timeout = 300000; // 5 minutes per model call
+    
+    // Configurable timeout (default: 60 minutes)
+    const DEBATE_TIMEOUT_MINUTES = parseInt(process.env.DEBATE_TIMEOUT_MINUTES) || 60;
+    this.timeout = DEBATE_TIMEOUT_MINUTES * 60 * 1000; // Convert to milliseconds
+    
+    console.log(`⏱️  Claude CLI timeout: ${DEBATE_TIMEOUT_MINUTES} minutes (${this.timeout}ms)`);
   }
 
   async initialize() {
@@ -221,7 +226,8 @@ Please provide a detailed analysis and solution.`;
       // Handle timeout
       child.on('timeout', () => {
         child.kill();
-        reject(new Error(`Claude CLI timed out after ${this.timeout}ms`));
+        const timeoutMinutes = Math.round(this.timeout / 60000);
+        reject(new Error(`Claude CLI timed out after ${timeoutMinutes} minutes`));
       });
     });
   }

@@ -56,3 +56,4 @@ temp/
 # Test artifacts
 test-results/
 *.test.json
+TEST-REPORT.md

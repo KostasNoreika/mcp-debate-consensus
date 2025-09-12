@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    
    **NOTE**: The k1-k4 aliases are NOT OS-level aliases. They are handled internally by the proxy server (`claude-router/proxy.js`). No alias setup is required - just start the proxy server.
    - k1 MUST remain: `anthropic/claude-opus-4.1`
-   - k2 MUST remain: `openai/gpt-5-chat`
+   - k2 MUST remain: `openai/gpt-5`
    - k3 MUST remain: `qwen/qwen3-max`
    - k4 MUST remain: `google/gemini-2.5-pro`
 
@@ -83,7 +83,7 @@ This is an MCP (Model Context Protocol) server that orchestrates multi-model deb
 
 **Model Configuration (FIXED - DO NOT CHANGE)**
 - **k1**: Claude Opus 4.1 (`anthropic/claude-opus-4.1`) - Architecture and system design
-- **k2**: GPT-5 (`openai/gpt-5-chat`) - Testing strategies and debugging  
+- **k2**: GPT-5 (`openai/gpt-5`) - Testing strategies and debugging  
 - **k3**: Qwen 3 Max (`qwen/qwen3-max`) - Algorithm optimization
 - **k4**: Gemini 2.5 Pro (`google/gemini-2.5-pro`) - Integration and completeness
 - **c1**: Existing Claude CLI with Opus - Final synthesis arbitrator
