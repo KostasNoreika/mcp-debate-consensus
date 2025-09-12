@@ -196,22 +196,23 @@ Create a `.env` file with:
 
 ```env
 OPENROUTER_API_KEY=your_api_key_here
-CLAUDE_CLI_PATH=/path/to/claude   # Optional: custom Claude CLI path
+CLAUDE_CLI_PATH=/path/to/claude   # Optional: override auto-detection
 PROXY_PORT=3456                   # Optional: base port for proxy servers
 DEBATE_TIMEOUT=1800000            # Optional: max debate time (30 min default)
 MIN_MODELS_REQUIRED=2             # Optional: minimum models for consensus
 ```
 
-#### Claude CLI Path Detection
+#### Claude CLI Auto-Detection
 
-The system automatically detects Claude CLI using this priority order:
+The system **automatically finds** Claude CLI without any configuration:
 
-1. **Environment variable**: `CLAUDE_CLI_PATH` (if set)
-2. **Global command**: `claude` (if available in PATH)  
-3. **Local installation**: `$HOME/.claude/local/claude`
-4. **System installation**: `/usr/local/bin/claude`
+1. **Global command**: `claude` (if available in PATH)  
+2. **Local installation**: `$HOME/.claude/local/claude`
+3. **System installation**: `/usr/local/bin/claude`
 
-Set `CLAUDE_CLI_PATH` to override auto-detection:
+**No setup required** - just install Claude CLI and it will be found automatically.
+
+**Optional override** (only if auto-detection fails):
 
 ```bash
 export CLAUDE_CLI_PATH="/custom/path/to/claude"
