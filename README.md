@@ -278,8 +278,8 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ### Development Setup
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR-USERNAME/mcp-debate-consensus.git
+# Clone the repository
+git clone https://github.com/KostasNoreika/mcp-debate-consensus.git
 
 # Create feature branch
 git checkout -b feature/your-feature
