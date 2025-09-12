@@ -9,7 +9,7 @@ export ANTHROPIC_API_KEY="k1-debate-key"
 
 # Ensure proxy server is running
 if ! curl -s http://localhost:3457/health > /dev/null 2>&1; then
-    echo "Error: k1 proxy server not running. Start it with: node /opt/mcp/servers/debate-consensus/k-proxy-server.js" >&2
+    echo "Error: k1 proxy server not running. Start it with: node $(dirname "$0")/k-proxy-server.js" >&2
     exit 1
 fi
 

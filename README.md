@@ -164,10 +164,11 @@ The installer will:
    cd claude-router && npm install && cd ..
    ```
 
-2. **Configure API key:**
+2. **Configure API key (required locally):**
    ```bash
    cp .env.example .env
    # Edit .env and add your OpenRouter API key
+   # This file is git-ignored for security
    ```
 
 3. **Install Claude CLI (optional but recommended):**

@@ -21,32 +21,32 @@ class ClaudeCliDebate {
         name: 'Claude Opus 4.1', 
         role: 'Architecture', 
         expertise: 'System architecture and design patterns',
-        wrapper: '/opt/mcp/servers/debate-consensus/k1-wrapper.sh'
+        wrapper: path.join(__dirname, '..', 'k1-wrapper.sh')
       },
       { 
         alias: 'k2', 
         name: 'GPT-5', 
         role: 'Testing', 
         expertise: 'Testing strategies, debugging, and quality assurance',
-        wrapper: '/opt/mcp/servers/debate-consensus/k2-wrapper.sh'
+        wrapper: path.join(__dirname, '..', 'k2-wrapper.sh')
       },
       { 
         alias: 'k3', 
         name: 'Qwen 3 Max', 
         role: 'Algorithms', 
         expertise: 'Algorithm optimization and data structures',
-        wrapper: '/opt/mcp/servers/debate-consensus/k3-wrapper.sh'
+        wrapper: path.join(__dirname, '..', 'k3-wrapper.sh')
       },
       { 
         alias: 'k4', 
         name: 'Gemini 2.5 Pro', 
         role: 'Integration', 
         expertise: 'System integration and completeness verification',
-        wrapper: '/opt/mcp/servers/debate-consensus/k4-wrapper.sh'
+        wrapper: path.join(__dirname, '..', 'k4-wrapper.sh')
       }
     ];
     
-    this.logsDir = '/opt/mcp/servers/debate-consensus/logs';
+    this.logsDir = path.join(__dirname, '..', 'logs');
     this.semanticScorer = new ImprovedSemanticScoring();
     
     // Configurable timeout (default: 60 minutes)
