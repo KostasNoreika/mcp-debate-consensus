@@ -1,5 +1,6 @@
-const { SimpleDebate } = require('./src/simple-debate-fixed.js');
+const { ClaudeCliDebate } = require('./src/claude-cli-debate.js');
 const { DebateHistory } = require('./src/history.js');
+const { Security } = require('./src/security.js');
 
 // Create dynamic imports for MCP SDK since it uses ES modules
 let Server, StdioServerTransport, ListToolsRequestSchema, CallToolRequestSchema;
@@ -22,9 +23,10 @@ async function initializeMCPModules() {
 class DebateConsensusMCP {
     constructor() {
         this.server = null;
-        // Use simple debate with k1-k4 aliases
-        this.debate = new SimpleDebate();
+        // Use Claude CLI debate with full MCP tool access
+        this.debate = new ClaudeCliDebate();
         this.history = new DebateHistory();
+        this.security = new Security();
         this.initialized = false;
     }
 
@@ -83,12 +85,17 @@ class DebateConsensusMCP {
             
             if (name === 'debate') {
                 try {
-                    console.error('Starting synchronous debate for:', args.question);
+                    // Security validation
+                    const sanitizedQuestion = this.security.validateQuestion(args.question);
+                    const validatedPath = await this.security.validateProjectPath(args.projectPath);
+                    this.security.checkRateLimit('debate', 5, 300000); // 5 debates per 5 minutes
+                    
+                    console.error('Starting synchronous debate for:', sanitizedQuestion);
                     
                     // Run debate synchronously and wait for completion
                     const result = await this.debate.runDebate(
-                        args.question,
-                        args.projectPath || process.cwd()
+                        sanitizedQuestion,
+                        validatedPath
                     );
                     
                     // Save to history

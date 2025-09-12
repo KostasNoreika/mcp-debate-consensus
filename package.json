@@ -5,26 +5,25 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/mcp-debate-consensus.git"
+    "url": "https://github.com/KostasNoreika/mcp-debate-consensus.git"
   },
-  "homepage": "https://github.com/yourusername/mcp-debate-consensus#readme",
+  "homepage": "https://github.com/KostasNoreika/mcp-debate-consensus#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/mcp-debate-consensus/issues"
+    "url": "https://github.com/KostasNoreika/mcp-debate-consensus/issues"
   },
   "scripts": {
     "start": "node index.js",
+    "proxy": "node k-proxy-server.js",
+    "test": "node test-debate.js 'Test debate functionality'",
+    "test:all": "npm run health && npm test",
+    "health": "node health-check.js",
+    "install:setup": "node install.js",
+    "clean": "rm -rf logs/*.json node_modules package-lock.json",
     "dev": "NODE_ENV=development node index.js",
     "prod": "NODE_ENV=production node index.js",
-    "test": "NODE_ENV=test jest",
-    "test:watch": "NODE_ENV=test jest --watch",
-    "test:coverage": "NODE_ENV=test jest --coverage",
-    "test:mcp": "node test-mcp-client.js",
-    "test:models": "./test-consensus.sh",
     "validate": "node -e \"const { config } = require('./src/config'); try { config.validate(); console.log('✅ Configuration is valid'); } catch (e) { console.error('❌ Configuration validation failed:', e.message); process.exit(1); }\"",
     "config:show": "node -e \"const { config } = require('./src/config'); console.log(JSON.stringify(config.getAll(), null, 2));\"",
-    "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\"",
-    "lint": "echo 'Linting not configured yet'",
-    "clean": "rm -rf logs/* coverage node_modules/.cache"
+    "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\""
   },
   "keywords": [
     "mcp",
