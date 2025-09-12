@@ -9,8 +9,8 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Import the improved semantic scoring
-const { ImprovedSemanticScoring } = require('./improved-semantic-scoring');
+// Import the LLM-based semantic evaluator
+const { LLMSemanticEvaluator } = require('./llm-semantic-evaluator');
 
 class ClaudeCliDebate {
   constructor() {
@@ -47,7 +47,7 @@ class ClaudeCliDebate {
     ];
     
     this.logsDir = path.join(__dirname, '..', 'logs');
-    this.semanticScorer = new ImprovedSemanticScoring();
+    this.semanticEvaluator = new LLMSemanticEvaluator();
     
     // Configurable timeout (default: 60 minutes)
     const DEBATE_TIMEOUT_MINUTES = parseInt(process.env.DEBATE_TIMEOUT_MINUTES) || 60;
@@ -287,19 +287,34 @@ Your expertise: ${model.expertise}`;
    * Select best using semantic scoring
    */
   async selectBestSemantic(proposals, question) {
-    let best = null;
-    let maxScore = 0;
+    // Use LLM to evaluate all proposals semantically
+    const evaluation = await this.semanticEvaluator.evaluateResponses(question, proposals);
     
-    for (const [model, proposal] of Object.entries(proposals)) {
-      const score = this.semanticScorer.calculateScore(proposal, question, []);
-      
-      if (score.total > maxScore) {
-        maxScore = score.total;
-        best = { model, proposal, score };
+    // Print evaluation summary
+    console.log(this.semanticEvaluator.formatEvaluationSummary(evaluation));
+    
+    // Extract the best response
+    const bestModel = evaluation.best_response.model;
+    const bestProposal = proposals[bestModel];
+    const bestScore = evaluation.best_response.score;
+    
+    // Format score in the expected structure for compatibility
+    const formattedScore = {
+      total: bestScore,
+      components: {
+        relevance: bestScore / 100,
+        quality: bestScore / 100,
+        novelty: 0.8,
+        coherence: 0.9
       }
-    }
+    };
     
-    return best;
+    return { 
+      model: bestModel, 
+      proposal: bestProposal, 
+      score: formattedScore,
+      evaluation: evaluation // Keep full evaluation for reference
+    };
   }
 
   /**
@@ -351,10 +366,20 @@ Provide specific improvements and enhancements.`;
    * Synthesize final solution
    */
   async synthesize(best, improvements, question) {
-    let synthesis = `# Consensus Solution (Claude CLI with Tools)\n\n`;
-    synthesis += `Base: ${best.model} (score: ${best.score.total.toFixed(2)})\n`;
+    let synthesis = `# Consensus Solution (LLM-Evaluated)\n\n`;
+    synthesis += `Base: ${best.model} (score: ${best.score.total})\n`;
     synthesis += `Contributors: ${Object.keys(improvements).join(', ')}\n`;
-    synthesis += `Tools Used: Full MCP integration enabled\n\n`;
+    synthesis += `Evaluation Method: LLM Semantic Understanding\n\n`;
+    
+    // Include evaluation insights if available
+    if (best.evaluation && best.evaluation.synthesis_suggestions) {
+      synthesis += `## Synthesis Strategy\n\n`;
+      best.evaluation.synthesis_suggestions.forEach(suggestion => {
+        synthesis += `• ${suggestion}\n`;
+      });
+      synthesis += '\n';
+    }
+    
     synthesis += `## Core Solution\n\n${best.proposal}\n\n`;
     
     if (Object.keys(improvements).length > 0) {
@@ -362,6 +387,21 @@ Provide specific improvements and enhancements.`;
       for (const [model, improvement] of Object.entries(improvements)) {
         synthesis += `### ${model}:\n${improvement.substring(0, 2000)}...\n\n`;
       }
+    }
+    
+    // Add evaluation details
+    if (best.evaluation && best.evaluation.evaluations) {
+      synthesis += `## Evaluation Details\n\n`;
+      best.evaluation.evaluations.forEach(evalItem => {
+        synthesis += `**${evalItem.model}** (${evalItem.score}/100)\n`;
+        if (evalItem.strengths && evalItem.strengths.length > 0) {
+          synthesis += `  Strengths: ${evalItem.strengths.join(', ')}\n`;
+        }
+        if (evalItem.weaknesses && evalItem.weaknesses.length > 0) {
+          synthesis += `  Weaknesses: ${evalItem.weaknesses.join(', ')}\n`;
+        }
+        synthesis += '\n';
+      });
     }
     
     return synthesis;
