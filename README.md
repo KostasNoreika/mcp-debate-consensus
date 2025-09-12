@@ -196,9 +196,27 @@ Create a `.env` file with:
 
 ```env
 OPENROUTER_API_KEY=your_api_key_here
-PROXY_PORT=3456              # Optional: base port for proxy servers
-DEBATE_TIMEOUT=1800000        # Optional: max debate time (30 min default)
-MIN_MODELS_REQUIRED=2         # Optional: minimum models for consensus
+CLAUDE_CLI_PATH=/path/to/claude   # Optional: custom Claude CLI path
+PROXY_PORT=3456                   # Optional: base port for proxy servers
+DEBATE_TIMEOUT=1800000            # Optional: max debate time (30 min default)
+MIN_MODELS_REQUIRED=2             # Optional: minimum models for consensus
+```
+
+#### Claude CLI Path Detection
+
+The system automatically detects Claude CLI using this priority order:
+
+1. **Environment variable**: `CLAUDE_CLI_PATH` (if set)
+2. **Global command**: `claude` (if available in PATH)  
+3. **Local installation**: `$HOME/.claude/local/claude`
+4. **System installation**: `/usr/local/bin/claude`
+
+Set `CLAUDE_CLI_PATH` to override auto-detection:
+
+```bash
+export CLAUDE_CLI_PATH="/custom/path/to/claude"
+# or add to .env file
+echo "CLAUDE_CLI_PATH=/custom/path/to/claude" >> .env
 ```
 
 ### MCP Integration

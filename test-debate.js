@@ -78,11 +78,27 @@ async function checkPrerequisites() {
   console.log('\nChecking Claude CLI installation...');
   try {
     const fs = require('fs');
-    const claudePath = '/Users/kostasnoreika/.claude/local/claude';
-    if (fs.existsSync(claudePath)) {
-      console.log('  ✅ Claude CLI found at', claudePath);
-    } else {
-      throw new Error('Claude CLI binary not found');
+    const { execSync } = require('child_process');
+    
+    // Try to find Claude CLI using same logic as wrapper scripts
+    let claudePath = process.env.CLAUDE_CLI_PATH;
+    
+    if (!claudePath) {
+      try {
+        // Try global command
+        execSync('which claude', { stdio: 'pipe' });
+        claudePath = 'claude';
+        console.log('  ✅ Claude CLI found globally:', claudePath);
+      } catch (e1) {
+        // Try local installation
+        const localPath = require('path').join(require('os').homedir(), '.claude/local/claude');
+        if (fs.existsSync(localPath)) {
+          claudePath = localPath;
+          console.log('  ✅ Claude CLI found at:', claudePath);
+        } else {
+          throw new Error('Claude CLI binary not found');
+        }
+      }
     }
   } catch (error) {
     console.error('  ❌ Claude CLI not found. Please install Claude CLI first.');
