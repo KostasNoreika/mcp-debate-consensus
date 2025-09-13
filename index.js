@@ -1,4 +1,5 @@
 const { ClaudeCliDebate } = require('./src/claude-cli-debate.js');
+const { IterativeDebateOrchestrator } = require('./src/iterative-debate-orchestrator.js');
 const { DebateHistory } = require('./src/history.js');
 const { Security } = require('./src/security.js');
 const { spawn } = require('child_process');
@@ -28,6 +29,7 @@ class DebateConsensusMCP {
         this.server = null;
         // Use Claude CLI debate with full MCP tool access
         this.debate = new ClaudeCliDebate();
+        this.iterativeDebate = new IterativeDebateOrchestrator();
         this.history = new DebateHistory();
         this.security = new Security();
         this.initialized = false;
@@ -83,6 +85,32 @@ class DebateConsensusMCP {
                             limit: { type: 'number' }
                         }
                     }
+                },
+                {
+                    name: 'iterative_debate',
+                    description: 'Run an iterative multi-LLM debate with consensus building (models see all responses and iterate until agreement)',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            question: { 
+                                type: 'string',
+                                description: 'The problem to solve or analyze'
+                            },
+                            projectPath: {
+                                type: 'string',
+                                description: 'Project path to analyze (optional, defaults to current)'
+                            },
+                            maxIterations: {
+                                type: 'number',
+                                description: 'Maximum debate iterations (default: 5)'
+                            },
+                            consensusThreshold: {
+                                type: 'number', 
+                                description: 'Consensus threshold percentage for early exit (default: 90)'
+                            }
+                        },
+                        required: ['question']
+                    }
                 }
             ]
         }));
@@ -125,6 +153,60 @@ class DebateConsensusMCP {
                         content: [{
                             type: 'text',
                             text: `Error running debate: ${error.message}\n\nMake sure you have:\n1. Set OPENROUTER_API_KEY in .env\n2. Run: ./setup-aliases.sh\n3. Source: source ~/.claude-models`
+                        }]
+                    };
+                }
+            }
+            
+            if (name === 'iterative_debate') {
+                try {
+                    // Security validation
+                    const sanitizedQuestion = this.security.validateQuestion(args.question);
+                    const validatedPath = await this.security.validateProjectPath(args.projectPath);
+                    this.security.checkRateLimit('iterative_debate', 3, 600000); // 3 iterative debates per 10 minutes
+                    
+                    console.error('Starting iterative debate for:', sanitizedQuestion);
+                    
+                    // Configure iteration settings if provided
+                    if (args.maxIterations) {
+                        this.iterativeDebate.maxIterations = args.maxIterations;
+                    }
+                    if (args.consensusThreshold) {
+                        this.iterativeDebate.consensusThreshold = args.consensusThreshold;
+                    }
+                    
+                    // Run iterative debate
+                    const result = await this.iterativeDebate.runIterativeDebate(
+                        sanitizedQuestion,
+                        validatedPath
+                    );
+                    
+                    // Save to history
+                    const historyId = await this.history.save({
+                        question: args.question,
+                        type: 'iterative',
+                        ...result
+                    });
+                    
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: `✅ Iterative Debate Complete!\n\n` +
+                                  `**Question:** ${args.question}\n` +
+                                  `**History ID:** ${historyId}\n` +
+                                  `**Iterations:** ${result.iterations}\n` +
+                                  `**Final Consensus:** ${result.finalConsensus}%\n` +
+                                  `**Consensus Evolution:** ${result.debateHistory.consensusTrend.join('% → ')}%\n\n` +
+                                  `## Solution\n\n${result.solution}`
+                        }]
+                    };
+                    
+                } catch (error) {
+                    console.error('Iterative debate error:', error);
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: `Error running iterative debate: ${error.message}`
                         }]
                     };
                 }
