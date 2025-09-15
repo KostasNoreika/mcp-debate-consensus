@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const { LLMSemanticEvaluator } = require('./llm-semantic-evaluator');
+const { ProgressReporter } = require('./progress-reporter');
 
 /**
  * Tracks debate history and positions across iterations
@@ -202,41 +203,48 @@ Return your evaluation as JSON:
  */
 class IterativeDebateOrchestrator {
   constructor() {
+    // Initialize progress reporter for iterative debates
+    this.progressReporter = new ProgressReporter({
+      interval: parseInt(process.env.DEBATE_PROGRESS_INTERVAL) || 30000,
+      enabled: process.env.DEBATE_PROGRESS_ENABLED !== 'false',
+      verbose: process.env.DEBATE_PROGRESS_VERBOSE === 'true'
+    });
+
     this.models = [
-      { 
-        alias: 'k1', 
-        name: 'Claude Opus 4.1', 
+      {
+        alias: 'k1',
+        name: 'Claude Opus 4.1',
         role: 'Architecture',
         wrapper: path.join(__dirname, '..', 'k1-wrapper.sh')
       },
-      { 
-        alias: 'k2', 
-        name: 'GPT-5', 
+      {
+        alias: 'k2',
+        name: 'GPT-5',
         role: 'Testing',
         wrapper: path.join(__dirname, '..', 'k2-wrapper.sh')
       },
-      { 
-        alias: 'k3', 
-        name: 'Qwen 3 Max', 
+      {
+        alias: 'k3',
+        name: 'Qwen 3 Max',
         role: 'Algorithms',
         wrapper: path.join(__dirname, '..', 'k3-wrapper.sh')
       },
-      { 
-        alias: 'k4', 
-        name: 'Gemini 2.5 Pro', 
+      {
+        alias: 'k4',
+        name: 'Gemini 2.5 Pro',
         role: 'Integration',
         wrapper: path.join(__dirname, '..', 'k4-wrapper.sh')
       }
     ];
-    
+
     this.consensusAnalyzer = new ConsensusAnalyzer();
     this.semanticEvaluator = new LLMSemanticEvaluator();
     this.debateMemory = new DebateMemory();
-    
+
     this.maxIterations = parseInt(process.env.MAX_DEBATE_ITERATIONS) || 5;
     this.consensusThreshold = parseInt(process.env.CONSENSUS_THRESHOLD) || 90;
     this.timeout = 60 * 60 * 1000; // 60 minutes
-    
+
     this.logsDir = path.join(__dirname, '..', 'logs');
   }
 
@@ -249,51 +257,79 @@ class IterativeDebateOrchestrator {
    */
   async runIterativeDebate(question, projectPath = process.cwd()) {
     await this.initialize();
-    
+
+    // Start progress reporting
+    this.progressReporter.startHeartbeat();
+    this.progressReporter.setPhase('Initializing iterative debate');
+
     console.log('🎯 Iterative Multi-Model Debate System\n');
     console.log('📍 Project:', projectPath);
     console.log('❓ Question:', question);
     console.log(`🔄 Max iterations: ${this.maxIterations}`);
     console.log(`🎯 Consensus threshold: ${this.consensusThreshold}%`);
     console.log('\n' + '='.repeat(70) + '\n');
+
+    try {
+      // Round 1: Initial proposals
+      this.progressReporter.setPhase('Round 1: Initial Independent Analysis');
+      console.log('🔄 ROUND 1: Initial Independent Analysis\n');
+      const initialResponses = await this.getInitialProposals(question, projectPath);
     
-    // Round 1: Initial proposals
-    console.log('🔄 ROUND 1: Initial Independent Analysis\n');
-    const initialResponses = await this.getInitialProposals(question, projectPath);
-    
-    if (Object.keys(initialResponses).length < 2) {
-      throw new Error('Not enough models responded for debate');
+      if (Object.keys(initialResponses).length < 2) {
+        throw new Error('Not enough models responded for debate');
+      }
+
+      // Check initial consensus
+      this.progressReporter.setPhase('Evaluating initial consensus');
+      const initialConsensus = await this.consensusAnalyzer.evaluateConsensus(
+        question,
+        initialResponses
+      );
+
+      console.log(`\n📊 Initial consensus: ${initialConsensus.consensus_score}%`);
+      this.progressReporter.progress(`Initial consensus: ${initialConsensus.consensus_score}%`, {
+        percentage: Math.min(20, initialConsensus.consensus_score / 5),
+        details: `${Object.keys(initialResponses).length} models responded`
+      });
+
+      this.debateMemory.addIteration(initialResponses, initialConsensus.consensus_score, initialConsensus.key_disagreements);
+
+      // Save initial responses log
+      await this.saveIntermediateLog(question, projectPath, this.debateMemory.getDebateState(), 0);
+
+      // Early exit if high initial consensus
+      if (initialConsensus.consensus_score >= this.consensusThreshold) {
+        console.log('✅ High initial consensus achieved! Proceeding to synthesis.');
+        this.progressReporter.progress('High consensus achieved early', {
+          percentage: 100,
+          details: `Consensus: ${initialConsensus.consensus_score}%`
+        });
+        const result = await this.synthesizeFinal(question, initialResponses, this.debateMemory.getDebateState());
+        this.progressReporter.complete('Iterative debate completed with early consensus');
+        return result;
+      }
+
+      // Round 2: Iterative debate
+      this.progressReporter.setPhase('Round 2: Iterative Consensus Building');
+      console.log('\n🔄 ROUND 2: Iterative Consensus Building\n');
+      const finalResponses = await this.runIterativeRounds(
+        question,
+        initialResponses,
+        projectPath
+      );
+
+      // Final synthesis
+      this.progressReporter.setPhase('Final Synthesis');
+      console.log('\n🔧 FINAL SYNTHESIS\n');
+      const result = await this.synthesizeFinal(question, finalResponses, this.debateMemory.getDebateState());
+
+      this.progressReporter.complete('Iterative debate completed successfully');
+      return result;
+
+    } catch (error) {
+      this.progressReporter.error(`Iterative debate failed: ${error.message}`, error);
+      throw error;
     }
-    
-    // Check initial consensus
-    const initialConsensus = await this.consensusAnalyzer.evaluateConsensus(
-      question, 
-      initialResponses
-    );
-    
-    console.log(`\n📊 Initial consensus: ${initialConsensus.consensus_score}%`);
-    this.debateMemory.addIteration(initialResponses, initialConsensus.consensus_score, initialConsensus.key_disagreements);
-    
-    // Save initial responses log
-    await this.saveIntermediateLog(question, projectPath, this.debateMemory.getDebateState(), 0);
-    
-    // Early exit if high initial consensus
-    if (initialConsensus.consensus_score >= this.consensusThreshold) {
-      console.log('✅ High initial consensus achieved! Proceeding to synthesis.');
-      return this.synthesizeFinal(question, initialResponses, this.debateMemory.getDebateState());
-    }
-    
-    // Round 2: Iterative debate
-    console.log('\n🔄 ROUND 2: Iterative Consensus Building\n');
-    const finalResponses = await this.runIterativeRounds(
-      question, 
-      initialResponses, 
-      projectPath
-    );
-    
-    // Final synthesis
-    console.log('\n🔧 FINAL SYNTHESIS\n');
-    return this.synthesizeFinal(question, finalResponses, this.debateMemory.getDebateState());
   }
 
   /**
@@ -331,20 +367,28 @@ Provide a comprehensive response based on your specialization.`;
   async runIterativeRounds(question, initialResponses, projectPath) {
     let currentResponses = { ...initialResponses };
     let iteration = 0;
-    
+
     while (iteration < this.maxIterations) {
       iteration++;
       console.log(`\n🔄 Iteration ${iteration}/${this.maxIterations}`);
-      
+
+      this.progressReporter.progress(`Starting iteration ${iteration}/${this.maxIterations}`, {
+        percentage: 20 + (iteration * 60 / this.maxIterations),
+        details: `Previous consensus: ${this.debateMemory.consensusHistory[this.debateMemory.consensusHistory.length - 1] || 0}%`
+      });
+
       // Each model sees all other responses and updates position
       const updatedResponses = await this.getUpdatedPositions(
-        question, 
-        currentResponses, 
+        question,
+        currentResponses,
         this.debateMemory.getDebateState(),
         projectPath
       );
-      
+
       // Evaluate new consensus
+      this.progressReporter.progress('Evaluating consensus for iteration', {
+        model: 'Consensus Analyzer'
+      });
       const consensus = await this.consensusAnalyzer.evaluateConsensus(
         question,
         updatedResponses,
@@ -353,33 +397,44 @@ Provide a comprehensive response based on your specialization.`;
       
       console.log(`  📊 Consensus score: ${consensus.consensus_score}%`);
       console.log(`  📈 Trend: ${consensus.convergence_trend || 'stable'}`);
-      
+
+      this.progressReporter.progress(`Iteration ${iteration} consensus: ${consensus.consensus_score}%`, {
+        percentage: 20 + (iteration * 60 / this.maxIterations),
+        details: `Trend: ${consensus.convergence_trend || 'stable'}`
+      });
+
       this.debateMemory.addIteration(
-        updatedResponses, 
-        consensus.consensus_score, 
+        updatedResponses,
+        consensus.consensus_score,
         consensus.key_disagreements
       );
       this.debateMemory.consensusHistory.push(consensus.consensus_score);
-      
+
       // Save intermediate log after each iteration
       await this.saveIntermediateLog(question, projectPath, this.debateMemory.getDebateState(), iteration);
-      
+
       // Check if consensus reached
       if (consensus.consensus_score >= this.consensusThreshold) {
         console.log(`\n✅ Consensus threshold reached after ${iteration} iterations!`);
+        this.progressReporter.progress('Consensus threshold reached!', {
+          percentage: 90,
+          details: `${consensus.consensus_score}% consensus after ${iteration} iterations`
+        });
         return updatedResponses;
       }
-      
+
       // Check if debate is stuck
       if (iteration > 2 && this.isDebateStuck()) {
         console.log('\n⚠️ Debate appears stuck. Moving to synthesis.');
+        this.progressReporter.warning('Debate appears stuck, moving to synthesis');
         return updatedResponses;
       }
-      
+
       currentResponses = updatedResponses;
     }
-    
+
     console.log(`\n⚠️ Max iterations (${this.maxIterations}) reached without full consensus.`);
+    this.progressReporter.warning(`Max iterations reached (${this.maxIterations}) without full consensus`);
     return currentResponses;
   }
 

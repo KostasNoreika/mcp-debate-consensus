@@ -12,8 +12,18 @@ const path = require('path');
 // Import the LLM-based semantic evaluator
 const { LLMSemanticEvaluator } = require('./llm-semantic-evaluator');
 
+// Import progress reporter
+const { ProgressReporter } = require('./progress-reporter');
+
 class ClaudeCliDebate {
   constructor() {
+    // Initialize progress reporter
+    this.progressReporter = new ProgressReporter({
+      interval: parseInt(process.env.DEBATE_PROGRESS_INTERVAL) || 30000,
+      enabled: process.env.DEBATE_PROGRESS_ENABLED !== 'false',
+      verbose: process.env.DEBATE_PROGRESS_VERBOSE === 'true'
+    });
+
     // Define models with k1-k4 wrapper scripts
     this.models = [
       { 
@@ -74,46 +84,73 @@ class ClaudeCliDebate {
    */
   async runDebate(question, projectPath = process.cwd()) {
     await this.initialize();
-    
+
+    // Start progress reporting
+    this.progressReporter.startHeartbeat();
+    this.progressReporter.setPhase('Initializing debate');
+
     console.log('🎯 Multi-Model Debate Consensus (Claude CLI Edition)\n');
     console.log('📍 Project:', projectPath);
     console.log('❓ Question:', question);
     console.log('🤖 Models:', this.models.map(m => `${m.alias}=${m.name}`).join(', '));
     console.log('🔧 Tool Access: Full MCP integration enabled');
     console.log('\n' + '='.repeat(70) + '\n');
+
+    try {
+      // Round 1: Get proposals
+      this.progressReporter.setPhase('Round 1: Independent Analysis with Tool Access');
+      console.log('🔄 ROUND 1: Independent Analysis with Tool Access\n');
+      const proposals = await this.getProposals(question, projectPath);
     
-    // Round 1: Get proposals
-    console.log('🔄 ROUND 1: Independent Analysis with Tool Access\n');
-    const proposals = await this.getProposals(question, projectPath);
-    
-    if (Object.keys(proposals).length < 2) {
-      const failedModels = this.models.filter(m => !proposals[m.name]).map(m => m.name);
-      throw new Error(`Not enough models responded. Got ${Object.keys(proposals).length}, need at least 2.\nFailed models: ${failedModels.join(', ')}\n\nCheck that:\n1. k-proxy-server.js is running\n2. Claude CLI is installed\n3. All wrapper scripts are executable`);
+      if (Object.keys(proposals).length < 2) {
+        const failedModels = this.models.filter(m => !proposals[m.name]).map(m => m.name);
+        throw new Error(`Not enough models responded. Got ${Object.keys(proposals).length}, need at least 2.\nFailed models: ${failedModels.join(', ')}\n\nCheck that:\n1. k-proxy-server.js is running\n2. Claude CLI is installed\n3. All wrapper scripts are executable`);
+      }
+
+      // Select best using semantic scoring
+      this.progressReporter.setPhase('Evaluating proposals');
+      const best = await this.selectBestSemantic(proposals, question);
+      console.log(`\n🏆 Best proposal: ${best.model}`);
+      console.log(`   Score: ${best.score.total.toFixed(2)} (R:${(best.score.components.relevance*100).toFixed(0)}% Q:${(best.score.components.quality*100).toFixed(0)}%)`);
+
+      this.progressReporter.progress(`Selected best proposal: ${best.model}`, {
+        model: best.model,
+        percentage: 40,
+        details: `Score: ${best.score.total.toFixed(2)}`
+      });
+
+      // Round 2: Improvements
+      this.progressReporter.setPhase('Round 2: Collaborative Improvements with Tools');
+      console.log('\n🔄 ROUND 2: Collaborative Improvements with Tools\n');
+      const improvements = await this.getImprovements(best, question, projectPath);
+
+      this.progressReporter.progress('Improvements collected', {
+        percentage: 70,
+        details: `${Object.keys(improvements).length} models contributed`
+      });
+
+      // Round 3: Final synthesis
+      this.progressReporter.setPhase('Round 3: Final Synthesis');
+      console.log('\n🔧 ROUND 3: Final Synthesis\n');
+      const final = await this.synthesize(best, improvements, question);
+
+      // Save log
+      await this.saveLog(question, projectPath, proposals, best, improvements, final);
+
+      // Report completion
+      this.progressReporter.complete('Debate completed successfully');
+
+      return {
+        solution: final,
+        winner: best.model,
+        score: best.score.total,
+        contributors: Object.keys(improvements),
+        toolsUsed: true
+      };
+    } catch (error) {
+      this.progressReporter.error(`Debate failed: ${error.message}`, error);
+      throw error;
     }
-    
-    // Select best using semantic scoring
-    const best = await this.selectBestSemantic(proposals, question);
-    console.log(`\n🏆 Best proposal: ${best.model}`);
-    console.log(`   Score: ${best.score.total.toFixed(2)} (R:${(best.score.components.relevance*100).toFixed(0)}% Q:${(best.score.components.quality*100).toFixed(0)}%)`);
-    
-    // Round 2: Improvements
-    console.log('\n🔄 ROUND 2: Collaborative Improvements with Tools\n');
-    const improvements = await this.getImprovements(best, question, projectPath);
-    
-    // Round 3: Final synthesis
-    console.log('\n🔧 ROUND 3: Final Synthesis\n');
-    const final = await this.synthesize(best, improvements, question);
-    
-    // Save log
-    await this.saveLog(question, projectPath, proposals, best, improvements, final);
-    
-    return {
-      solution: final,
-      winner: best.model,
-      score: best.score.total,
-      contributors: Object.keys(improvements),
-      toolsUsed: true
-    };
   }
 
   /**
@@ -121,11 +158,17 @@ class ClaudeCliDebate {
    */
   async callModel(model, prompt, projectPath = process.cwd()) {
     const maxRetries = 2;
-    
+
+    // Update model status to waiting initially
+    this.progressReporter.updateModelStatus(model.name, 'waiting');
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.error(`  🔄 ${model.name} (attempt ${attempt}/${maxRetries}) - Starting Claude CLI...`);
-        
+
+        // Update model status to starting
+        this.progressReporter.updateModelStatus(model.name, 'starting');
+
         const startTime = Date.now();
         
         // Create a comprehensive prompt that includes project context
@@ -154,21 +197,27 @@ INSTRUCTIONS:
 
 Please provide a detailed analysis and solution.`;
 
+        // Update status to running
+        this.progressReporter.updateModelStatus(model.name, 'running');
+
         const result = await this.spawnClaude(model, fullPrompt, projectPath);
         const duration = Math.round((Date.now() - startTime) / 1000);
-        
+
         if (!result) {
           throw new Error('Empty response from Claude CLI');
         }
-        
+
+        // Update status to completed
+        this.progressReporter.updateModelStatus(model.name, 'completed');
         console.error(`  ✅ ${model.name} completed (${duration}s, ${result.length} chars)`);
         return result;
-        
+
       } catch (error) {
         console.error(`  ❌ ${model.name} attempt ${attempt} failed:`, error.message);
-        
+
         if (attempt === maxRetries) {
           console.error(`  🚫 ${model.name} failed after ${maxRetries} attempts`);
+          this.progressReporter.updateModelStatus(model.name, 'failed');
           return null;
         }
         
