@@ -32,9 +32,17 @@ console.log(`⏱️  Timeout configured: ${DEBATE_TIMEOUT_MINUTES} minutes (${TI
 // Model mapping for k1-k4 (updated with specified OpenRouter models)
 const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',    // Architecture expert (Claude Opus 4.1)
-  'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
+  'k2': 'openai/gpt-5-chat',            // Testing expert (GPT-5-chat)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
   'k4': 'google/gemini-2.5-pro'        // Integration expert (Gemini 2.5 Pro)
+};
+
+// Conservative token limits for each model (for cost-effectiveness)
+const maxTokensMap = {
+  'k1': 16000,   // Claude Opus 4.1 (max: 32k)
+  'k2': 32000,   // GPT-5-chat (max: 128k!)
+  'k3': 16000,   // Qwen 3 Max (max: 32k)
+  'k4': 32000    // Gemini 2.5 Pro (max: 66k)
 };
 
 // Port mapping for each k instance
@@ -63,7 +71,7 @@ function createProxyServer(kInstance) {
       const openRouterRequest = {
         model: model,
         messages: req.body.messages,
-        max_tokens: req.body.max_tokens || 4096,
+        max_tokens: req.body.max_tokens || maxTokensMap[kInstance] || 16000,
         temperature: req.body.temperature || 0.7,
         stream: false // Force non-streaming for simplicity
       };
@@ -148,15 +156,61 @@ function createProxyServer(kInstance) {
     }
   });
 
-  // Health check
+  // Simple health check
   app.get('/health', (req, res) => {
-    res.json({ 
-      status: 'ok', 
+    res.json({
+      status: 'ok',
       instance: kInstance,
       model: model,
       port: port,
       timestamp: new Date().toISOString()
     });
+  });
+
+  // Deep health check that actually tests the model
+  app.post('/health/test', async (req, res) => {
+    try {
+      const testRequest = {
+        model: model,
+        messages: [{
+          role: 'user',
+          content: 'This is a health check test. Please respond with exactly: OK'
+        }],
+        max_tokens: 20,  // Minimum 20 tokens for health check
+        temperature: 0.1,
+        stream: false
+      };
+
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        testRequest,
+        {
+          headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'http://localhost:' + port,
+            'X-Title': `Health Check - ${kInstance}`
+          },
+          timeout: 10000  // 10 second timeout for health check
+        }
+      );
+
+      res.json({
+        status: 'healthy',
+        instance: kInstance,
+        model: model,
+        response: response.data.choices?.[0]?.message?.content || 'No response',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        instance: kInstance,
+        model: model,
+        error: error.response?.data?.error?.message || error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   return { app, port };

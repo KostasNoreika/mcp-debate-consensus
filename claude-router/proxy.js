@@ -20,9 +20,17 @@ if (!OPENROUTER_API_KEY) {
 // Model mapping based on MODEL_OVERRIDE environment variable
 const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',
-  'k2': 'openai/gpt-5',
+  'k2': 'openai/gpt-5-chat',
   'k3': 'qwen/qwen3-max',
   'k4': 'google/gemini-2.5-pro'
+};
+
+// Conservative token limits for each model (for cost-effectiveness)
+const maxTokensMap = {
+  'k1': 16000,   // Claude Opus 4.1 (max: 32k)
+  'k2': 32000,   // GPT-5-chat (max: 128k!)
+  'k3': 16000,   // Qwen 3 Max (max: 32k)
+  'k4': 32000    // Gemini 2.5 Pro (max: 66k)
 };
 
 // Claude API to OpenRouter translation
@@ -67,7 +75,7 @@ app.post('/v1/messages', async (req, res) => {
     const openRouterRequest = {
       model: model,
       messages: req.body.messages,
-      max_tokens: req.body.max_tokens || 4096,
+      max_tokens: req.body.max_tokens || maxTokensMap[modelOverride] || 16000,
       temperature: req.body.temperature || 0.7,
       stream: req.body.stream || false
     };
@@ -122,16 +130,65 @@ app.post('/v1/messages', async (req, res) => {
   }
 });
 
-// Health check
+// Simple health check
 app.get('/health', (req, res) => {
   const modelOverride = process.env.MODEL_OVERRIDE || 'k1';
   const model = modelMap[modelOverride] || modelMap['k1'];
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     model: model,
     alias: modelOverride,
     timestamp: new Date().toISOString()
   });
+});
+
+// Deep health check that actually tests the model
+app.post('/health/test', async (req, res) => {
+  const modelOverride = process.env.MODEL_OVERRIDE || 'k1';
+  const model = modelMap[modelOverride] || modelMap['k1'];
+
+  try {
+    const testRequest = {
+      model: model,
+      messages: [{
+        role: 'user',
+        content: 'This is a health check test. Please respond with exactly: OK'
+      }],
+      max_tokens: 20,  // Minimum 20 tokens for health check
+      temperature: 0.1,
+      stream: false
+    };
+
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      testRequest,
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:3456',
+          'X-Title': 'Health Check - Claude Router'
+        },
+        timeout: 10000  // 10 second timeout for health check
+      }
+    );
+
+    res.json({
+      status: 'healthy',
+      model: model,
+      alias: modelOverride,
+      response: response.data.choices?.[0]?.message?.content || 'No response',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      model: model,
+      alias: modelOverride,
+      error: error.response?.data?.error?.message || error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.listen(PORT, () => {
