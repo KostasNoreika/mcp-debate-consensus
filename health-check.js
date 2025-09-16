@@ -279,7 +279,7 @@ class HealthCheck {
     // Test each model specified in the requirements
     const modelsToTest = [
       { name: 'k1', model: 'anthropic/claude-opus-4.1', description: 'Claude Opus 4.1' },
-      { name: 'k2', model: 'openai/gpt-5-chat', description: 'GPT-5-chat' },
+      { name: 'k2', model: 'openai/gpt-5', description: 'GPT-5' },
       { name: 'k3', model: 'qwen/qwen3-max', description: 'Qwen 3 Max' },
       { name: 'k4', model: 'google/gemini-2.5-pro', description: 'Gemini 2.5 Pro' }
     ];
@@ -306,9 +306,9 @@ class HealthCheck {
   
   async testBasicAPI() {
     return new Promise((resolve) => {
-      // Test with GPT-5-chat since it's one of our main debate models
+      // Test with GPT-5 since it's one of our main debate models
       const data = JSON.stringify({
-        model: 'openai/gpt-5-chat',  // Using our actual k2 model for testing
+        model: 'openai/gpt-5',  // Using our actual k2 model for testing
         messages: [{ role: 'user', content: 'Health check test' }],
         max_tokens: 20  // Minimum 20 tokens for health check
       });
