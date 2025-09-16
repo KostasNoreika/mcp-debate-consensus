@@ -20,7 +20,7 @@ if (!OPENROUTER_API_KEY) {
 // Model mapping based on MODEL_OVERRIDE environment variable
 const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',
-  'k2': 'openai/gpt-5-chat',
+  'k2': 'openai/gpt-5',
   'k3': 'qwen/qwen3-max',
   'k4': 'google/gemini-2.5-pro'
 };
@@ -28,7 +28,7 @@ const modelMap = {
 // Conservative token limits for each model (for cost-effectiveness)
 const maxTokensMap = {
   'k1': 16000,   // Claude Opus 4.1 (max: 32k)
-  'k2': 32000,   // GPT-5-chat (max: 128k!)
+  'k2': 32000,   // GPT-5 (max: 128k!)
   'k3': 16000,   // Qwen 3 Max (max: 32k)
   'k4': 32000    // Gemini 2.5 Pro (max: 66k)
 };
