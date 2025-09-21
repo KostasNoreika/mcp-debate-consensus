@@ -21,18 +21,24 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 git clone https://github.com/KostasNoreika/mcp-debate-consensus.git
 cd mcp-debate-consensus && npm install
 
-# 2. Run automated setup
+# 2. Configure API key (REQUIRED!)
+cp .env.example .env
+# Edit .env and add your OpenRouter API key
+
+# 3. Run automated setup
 node install.js
 
-# 3. Start the proxy server (required)
-node k-proxy-server.js
+# 4. Start the proxy server (REQUIRED before using!)
+node k-proxy-server.js &
 
-# 4. Run health check
+# 5. Run health check
 node health-check.js
 
-# 5. Test the system
+# 6. Test the system
 node test-debate.js "What's the best architecture for a real-time chat app?"
 ```
+
+⚠️ **Important**: You MUST have an OpenRouter API key and configure it in `.env` file before using the system!
 
 ## 🏗️ Architecture
 

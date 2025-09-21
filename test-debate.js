@@ -9,6 +9,7 @@
 
 const { ClaudeCliDebate } = require('./src/claude-cli-debate');
 const { spawn } = require('child_process');
+const path = require('path');
 
 async function checkPrerequisites() {
   console.log('🔍 Checking prerequisites...\n');
@@ -40,7 +41,7 @@ async function checkPrerequisites() {
     console.log('\n⚠️  No proxy servers running. Starting k-proxy-server...');
     
     // Start proxy server in background
-    const proxyProcess = spawn('node', ['/opt/mcp/servers/debate-consensus/k-proxy-server.js'], {
+    const proxyProcess = spawn('node', [path.join(__dirname, 'k-proxy-server.js')], {
       detached: true,
       stdio: 'ignore'
     });
@@ -67,7 +68,7 @@ async function checkPrerequisites() {
     
     if (!started) {
       console.error('❌ Failed to start proxy servers. Please run manually:');
-      console.error('   node /opt/mcp/servers/debate-consensus/k-proxy-server.js');
+      console.error('   node k-proxy-server.js');
       process.exit(1);
     }
     

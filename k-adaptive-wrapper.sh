@@ -53,7 +53,7 @@ check_native_cli() {
         claude)
             # Claude is always ready if installed
             # Check if Claude CLI exists
-            if [ -f "/Users/kostasnoreika/.claude/local/claude" ]; then
+            if [ -f "$HOME/.claude/local/claude" ]; then
                 return 0
             elif command -v claude >/dev/null 2>&1; then
                 return 0
@@ -107,7 +107,7 @@ run_via_proxy() {
     export ANTHROPIC_API_KEY="$K_ALIAS-debate-key"
 
     # Use Claude CLI with proxy
-    CLAUDE_CLI_PATH="/Users/kostasnoreika/.claude/local/claude"
+    CLAUDE_CLI_PATH="$HOME/.claude/local/claude"
     if [ -f "$CLAUDE_CLI_PATH" ]; then
         exec "$CLAUDE_CLI_PATH" --dangerously-skip-permissions "$@"
     elif command -v claude >/dev/null 2>&1; then
@@ -128,7 +128,7 @@ run_native_cli() {
     case "$cli_name" in
         claude)
             # Use the full path to Claude CLI
-            CLAUDE_CLI_PATH="/Users/kostasnoreika/.claude/local/claude"
+            CLAUDE_CLI_PATH="$HOME/.claude/local/claude"
             if [ -f "$CLAUDE_CLI_PATH" ]; then
                 exec "$CLAUDE_CLI_PATH" "$@"
             else
