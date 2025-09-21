@@ -8,10 +8,15 @@
  * full MCP tool access through the Claude CLI.
  */
 
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+import express from 'express';
+import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));

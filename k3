@@ -1,0 +1,3 @@
+#!/bin/bash
+# k3 - Qwen 3 Max adaptive wrapper
+exec "$(dirname "$0")/k-adaptive-wrapper.sh" k3 "$@"

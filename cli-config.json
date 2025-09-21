@@ -1,0 +1,51 @@
+{
+  "cli_preferences": {
+    "k1": {
+      "name": "Claude Opus 4.1",
+      "prefer_native": true,
+      "native_cli": "claude",
+      "native_available": true,
+      "force_native": false,
+      "fallback_to_proxy": true,
+      "proxy_model": "anthropic/claude-3-opus-20240229"
+    },
+    "k2": {
+      "name": "GPT-5",
+      "prefer_native": true,
+      "native_cli": "codex",
+      "native_available": true,
+      "fallback_to_proxy": true,
+      "proxy_model": "openai/gpt-4o"
+    },
+    "k3": {
+      "name": "Qwen 3 Max",
+      "prefer_native": true,
+      "native_cli": "qwen",
+      "native_available": false,
+      "native_needs_config": true,
+      "fallback_to_proxy": true,
+      "proxy_model": "qwen/qwen-2.5-72b-instruct"
+    },
+    "k4": {
+      "name": "Gemini 2.5 Pro",
+      "prefer_native": true,
+      "native_cli": "gemini",
+      "native_available": true,
+      "native_api_key_env": "GEMINI_API_KEY",
+      "fallback_to_proxy": true,
+      "proxy_model": "google/gemini-2.0-flash-exp"
+    }
+  },
+  "global_settings": {
+    "auto_install_native": true,
+    "auto_configure": true,
+    "prefer_native_when_available": true,
+    "proxy_base_url": "http://localhost",
+    "proxy_ports": {
+      "k1": 3457,
+      "k2": 3458,
+      "k3": 3459,
+      "k4": 3460
+    }
+  }
+}
