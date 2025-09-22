@@ -1,70 +1,116 @@
 # Performance Tracking System Design
 
-## Task Categories (50+ types)
+## Universal Task Categories (70+ types)
 
-### 1. Code Generation (10 types)
-- `code/frontend/react` - React component creation
-- `code/frontend/vue` - Vue.js development
-- `code/backend/api` - REST/GraphQL API design
-- `code/backend/database` - Database schema design
-- `code/algorithm/optimization` - Algorithm optimization
-- `code/algorithm/implementation` - Algorithm implementation
-- `code/refactoring/performance` - Performance refactoring
-- `code/refactoring/clean` - Code cleanup
-- `code/testing/unit` - Unit test creation
-- `code/testing/integration` - Integration tests
+### 1. Technical & Engineering (15 types)
+- `tech/programming/implementation` - Code writing and development
+- `tech/programming/debugging` - Finding and fixing bugs
+- `tech/programming/optimization` - Performance improvements
+- `tech/architecture/design` - System design and planning
+- `tech/infrastructure/cloud` - Cloud and DevOps
+- `tech/security/audit` - Security analysis
+- `tech/data/analysis` - Data processing and analytics
+- `tech/ai/ml` - Machine learning and AI
+- `tech/hardware/embedded` - Hardware and IoT
+- `tech/networks/protocols` - Networking and protocols
+- `tech/database/design` - Database architecture
+- `tech/mobile/apps` - Mobile development
+- `tech/web/frontend` - Web interfaces
+- `tech/blockchain/crypto` - Blockchain technology
+- `tech/gaming/development` - Game development
 
-### 2. Debugging & Troubleshooting (8 types)
-- `debug/runtime/crash` - Runtime crashes
-- `debug/runtime/memory` - Memory leaks
-- `debug/logic/incorrect` - Logic errors
-- `debug/logic/edge-case` - Edge case issues
-- `debug/performance/slow` - Performance bottlenecks
-- `debug/integration/api` - API integration issues
-- `debug/integration/database` - Database issues
-- `debug/security/vulnerability` - Security vulnerabilities
+### 2. Business & Strategy (10 types)
+- `business/strategy/planning` - Strategic planning
+- `business/analysis/market` - Market analysis
+- `business/finance/modeling` - Financial modeling
+- `business/operations/optimization` - Process optimization
+- `business/marketing/campaigns` - Marketing strategies
+- `business/sales/tactics` - Sales approaches
+- `business/management/leadership` - Management advice
+- `business/startup/founding` - Startup guidance
+- `business/investment/analysis` - Investment decisions
+- `business/risk/assessment` - Risk management
 
-### 3. Architecture & Design (8 types)
-- `architecture/system/microservices` - Microservices design
-- `architecture/system/monolith` - Monolithic architecture
-- `architecture/database/sql` - SQL database design
-- `architecture/database/nosql` - NoSQL design
-- `architecture/api/rest` - REST API architecture
-- `architecture/api/graphql` - GraphQL design
-- `architecture/security/auth` - Authentication design
-- `architecture/scalability/distributed` - Distributed systems
+### 3. Creative & Content (10 types)
+- `creative/writing/fiction` - Story and narrative creation
+- `creative/writing/technical` - Technical documentation
+- `creative/writing/marketing` - Marketing copy
+- `creative/design/visual` - Visual design concepts
+- `creative/music/composition` - Music and audio
+- `creative/video/scripting` - Video content planning
+- `creative/branding/identity` - Brand development
+- `creative/ux/design` - User experience design
+- `creative/advertising/campaigns` - Ad creative
+- `creative/storytelling/narrative` - Narrative structure
 
-### 4. DevOps & Infrastructure (7 types)
-- `devops/ci-cd/pipeline` - CI/CD pipeline setup
-- `devops/docker/container` - Containerization
-- `devops/kubernetes/orchestration` - K8s orchestration
-- `devops/cloud/aws` - AWS infrastructure
-- `devops/cloud/azure` - Azure setup
-- `devops/monitoring/logging` - Logging systems
-- `devops/monitoring/metrics` - Metrics & alerting
+### 4. Science & Research (10 types)
+- `science/physics/theoretical` - Physics problems
+- `science/chemistry/reactions` - Chemical analysis
+- `science/biology/genetics` - Biological systems
+- `science/medicine/diagnosis` - Medical questions
+- `science/mathematics/pure` - Mathematical proofs
+- `science/engineering/applied` - Engineering problems
+- `science/environment/climate` - Environmental science
+- `science/astronomy/cosmology` - Space and astronomy
+- `science/research/methodology` - Research design
+- `science/statistics/analysis` - Statistical methods
 
-### 5. Data & ML (6 types)
-- `data/analysis/exploratory` - Data exploration
-- `data/analysis/statistical` - Statistical analysis
-- `data/ml/classification` - Classification problems
-- `data/ml/regression` - Regression problems
-- `data/ml/nlp` - NLP tasks
-- `data/visualization/dashboard` - Dashboard creation
+### 5. Education & Learning (8 types)
+- `education/teaching/methods` - Teaching strategies
+- `education/curriculum/design` - Course planning
+- `education/explanation/complex` - Explaining difficult concepts
+- `education/tutoring/personalized` - Individual learning
+- `education/assessment/testing` - Evaluation methods
+- `education/learning/strategies` - Study techniques
+- `education/training/professional` - Professional development
+- `education/research/academic` - Academic research
 
-### 6. Security & Compliance (5 types)
-- `security/audit/vulnerability` - Security audits
-- `security/implementation/encryption` - Encryption implementation
-- `security/compliance/gdpr` - GDPR compliance
-- `security/compliance/pci` - PCI compliance
-- `security/review/code` - Security code review
+### 6. Communication & Language (8 types)
+- `language/translation/accurate` - Language translation
+- `language/writing/style` - Writing improvement
+- `language/grammar/correction` - Grammar and syntax
+- `language/communication/professional` - Business communication
+- `language/presentation/public` - Public speaking
+- `language/negotiation/tactics` - Negotiation strategies
+- `language/cultural/context` - Cultural communication
+- `language/interpretation/meaning` - Text interpretation
 
-### 7. Documentation & Communication (6 types)
-- `docs/technical/api` - API documentation
-- `docs/technical/architecture` - Architecture docs
-- `docs/user/guide` - User guides
-- `docs/user/tutorial` - Tutorials
-- `docs/proposal/technical` - Technical proposals
-- `docs/proposal/business` - Business proposals
+### 7. Legal & Compliance (7 types)
+- `legal/contracts/review` - Contract analysis
+- `legal/compliance/regulatory` - Regulatory compliance
+- `legal/intellectual/property` - IP and patents
+- `legal/corporate/governance` - Corporate law
+- `legal/litigation/strategy` - Legal strategy
+- `legal/policy/development` - Policy creation
+- `legal/ethics/guidelines` - Ethical considerations
+
+### 8. Healthcare & Wellness (6 types)
+- `health/medical/information` - Medical information
+- `health/mental/wellness` - Mental health support
+- `health/nutrition/diet` - Nutrition advice
+- `health/fitness/training` - Exercise planning
+- `health/diagnosis/symptoms` - Symptom analysis
+- `health/treatment/options` - Treatment approaches
+
+### 9. Personal & Lifestyle (6 types)
+- `personal/productivity/optimization` - Personal efficiency
+- `personal/relationships/advice` - Relationship guidance
+- `personal/finance/planning` - Personal finance
+- `personal/career/development` - Career advice
+- `personal/decision/making` - Life decisions
+- `personal/habits/formation` - Behavior change
+
+### 10. Analysis & Problem-Solving (10 types)
+- `analysis/logical/reasoning` - Logical puzzles
+- `analysis/critical/thinking` - Critical analysis
+- `analysis/systems/thinking` - Systems analysis
+- `analysis/root-cause/investigation` - Problem diagnosis
+- `analysis/decision/trees` - Decision analysis
+- `analysis/scenario/planning` - Scenario modeling
+- `analysis/comparative/evaluation` - Comparison tasks
+- `analysis/pattern/recognition` - Pattern finding
+- `analysis/prediction/forecasting` - Future predictions
+- `analysis/optimization/solutions` - Optimization problems
 
 ## Performance Metrics to Track
 
@@ -107,6 +153,48 @@
   }
 }
 ```
+
+## Expected Model Specializations (Based on Training)
+
+### k1 - Claude Opus 4.1 (Anthropic)
+**Expected Strengths:**
+- `analysis/*` - Deep reasoning and complex analysis
+- `science/*` - Scientific and research questions
+- `education/*` - Clear explanations and teaching
+- `legal/ethics` - Ethical considerations
+- `creative/writing` - High-quality writing
+
+### k2 - GPT-5 (OpenAI)
+**Expected Strengths:**
+- `tech/programming` - Code generation
+- `business/*` - Business strategy
+- `creative/*` - Creative content
+- `language/*` - Language tasks
+- `analysis/prediction` - Pattern recognition
+
+### k3 - Qwen 3 Max (Alibaba)
+**Expected Strengths:**
+- `tech/ai/ml` - ML/AI expertise
+- `science/mathematics` - Mathematical reasoning
+- `business/analysis` - Data analysis
+- `language/translation` - Multilingual (especially Asian languages)
+- `tech/optimization` - Algorithm optimization
+
+### k4 - Gemini 2.5 Pro (Google)
+**Expected Strengths:**
+- `science/*` - Scientific reasoning
+- `tech/data` - Data processing
+- `analysis/systems` - Systems thinking
+- `education/explanation` - Teaching complex topics
+- `health/medical` - Medical and health information
+
+### k5 - Grok 4 Fast (xAI)
+**Expected Strengths:**
+- `tech/programming/debugging` - Quick bug fixes
+- `analysis/logical` - Fast logical reasoning
+- `personal/productivity` - Quick practical advice
+- `business/operations` - Operational efficiency
+- `creative/writing/marketing` - Snappy content
 
 ## What to Do With This Data
 
@@ -187,3 +275,47 @@ const categoryDetector = {
   }
 };
 ```
+
+## Example Category Detection
+
+### User Question Examples → Auto-Detected Categories
+
+1. **"How do I implement OAuth2 in my React app?"**
+   - Primary: `tech/programming/implementation`
+   - Secondary: [`tech/web/frontend`, `tech/security/audit`]
+   - Selected Models: k2 (GPT-5), k1 (Claude), k5 (Grok)
+
+2. **"What's the best strategy to enter the Japanese market?"**
+   - Primary: `business/strategy/planning`
+   - Secondary: [`business/analysis/market`, `language/cultural/context`]
+   - Selected Models: k3 (Qwen - Asian expertise), k2 (GPT-5), k1 (Claude)
+
+3. **"Explain quantum entanglement to a 12-year-old"**
+   - Primary: `education/explanation/complex`
+   - Secondary: [`science/physics/theoretical`, `education/tutoring/personalized`]
+   - Selected Models: k1 (Claude - teaching), k4 (Gemini - science), k2 (GPT-5)
+
+4. **"Write a horror story about AI becoming conscious"**
+   - Primary: `creative/writing/fiction`
+   - Secondary: [`creative/storytelling/narrative`, `tech/ai/ml`]
+   - Selected Models: k2 (GPT-5 - creative), k1 (Claude - writing), k5 (Grok - quick ideas)
+
+5. **"Debug this Python code that's throwing AttributeError"**
+   - Primary: `tech/programming/debugging`
+   - Secondary: [`analysis/root-cause/investigation`]
+   - Selected Models: k5 (Grok - fast debug), k2 (GPT-5), k3 (Qwen)
+
+6. **"Should I invest in renewable energy stocks?"**
+   - Primary: `business/investment/analysis`
+   - Secondary: [`science/environment/climate`, `analysis/prediction/forecasting`]
+   - Selected Models: k2 (GPT-5 - business), k4 (Gemini - data), k1 (Claude - analysis)
+
+7. **"Help me negotiate a salary increase"**
+   - Primary: `language/negotiation/tactics`
+   - Secondary: [`personal/career/development`, `business/management/leadership`]
+   - Selected Models: k1 (Claude - communication), k2 (GPT-5 - strategy), k5 (Grok - tactics)
+
+8. **"What are the symptoms of vitamin D deficiency?"**
+   - Primary: `health/diagnosis/symptoms`
+   - Secondary: [`health/nutrition/diet`, `science/medicine/diagnosis`]
+   - Selected Models: k4 (Gemini - medical), k1 (Claude - thorough), k2 (GPT-5)
