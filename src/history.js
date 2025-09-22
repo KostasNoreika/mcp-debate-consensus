@@ -1,5 +1,9 @@
-const fs = require('fs').promises;
-const path = require('path');
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class DebateHistory {
   constructor() {
@@ -98,4 +102,4 @@ class DebateHistory {
   }
 }
 
-module.exports = { DebateHistory };
+export { DebateHistory };

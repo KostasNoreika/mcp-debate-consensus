@@ -204,4 +204,4 @@ class ProgressReporter {
   }
 }
 
-module.exports = { ProgressReporter };
+export { ProgressReporter };

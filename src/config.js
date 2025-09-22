@@ -1,6 +1,12 @@
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
 
 /**
  * Configuration management system
@@ -262,7 +268,7 @@ class ConfigManager {
 // Create singleton instance
 const configManager = new ConfigManager();
 
-module.exports = {
+export default {
   ConfigManager,
   config: configManager
 };

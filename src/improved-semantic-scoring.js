@@ -364,4 +364,4 @@ class ImprovedSemanticScoring {
   }
 }
 
-module.exports = { ImprovedSemanticScoring };
+export { ImprovedSemanticScoring };

@@ -6,8 +6,12 @@
  * based on the question context and evaluates holistically.
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class LLMSemanticEvaluator {
   constructor() {
@@ -357,4 +361,4 @@ Be objective and thorough. Focus on semantic understanding, not surface-level fe
   }
 }
 
-module.exports = { LLMSemanticEvaluator };
+export { LLMSemanticEvaluator };
