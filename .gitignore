@@ -57,3 +57,6 @@ temp/
 test-results/
 *.test.json
 TEST-REPORT.md
+
+# Task specifications (internal only)
+/tasks/
