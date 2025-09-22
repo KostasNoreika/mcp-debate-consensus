@@ -1,0 +1,177 @@
+{
+  "timestamp": 1758565044767,
+  "systemStatus": {
+    "learningEnabled": true,
+    "isInitialized": true,
+    "totalDebatesProcessed": 5,
+    "modelsTracked": 5,
+    "learningLevel": "Novice",
+    "optimizationFeatures": {
+      "costOptimization": false,
+      "patternOptimization": false,
+      "advancedOptimization": false
+    },
+    "lastUpdate": 1758565044767
+  },
+  "modelPerformance": {
+    "k1": {
+      "name": "Claude Opus 4.1",
+      "totalDebates": 4,
+      "winRate": 0.5,
+      "avgResponseTime": 44375,
+      "costEfficiency": 0.3,
+      "specializations": [],
+      "strongCategories": [
+        "tech/code",
+        "education/explain",
+        "business/strategy"
+      ],
+      "weakCategories": []
+    },
+    "k2": {
+      "name": "GPT-5",
+      "totalDebates": 5,
+      "winRate": 0,
+      "avgResponseTime": 27375,
+      "costEfficiency": 0.6,
+      "specializations": [],
+      "strongCategories": [
+        "math/calculation"
+      ],
+      "weakCategories": []
+    },
+    "k3": {
+      "name": "Qwen 3 Max",
+      "totalDebates": 3,
+      "winRate": 0.6666666666666666,
+      "avgResponseTime": 21500,
+      "costEfficiency": 0.8,
+      "specializations": [],
+      "strongCategories": [
+        "tech/code",
+        "math/calculation"
+      ],
+      "weakCategories": []
+    },
+    "k4": {
+      "name": "Gemini 2.5 Pro",
+      "totalDebates": 2,
+      "winRate": 0,
+      "avgResponseTime": 35000,
+      "costEfficiency": 0.7,
+      "specializations": [],
+      "strongCategories": [
+        "education/explain",
+        "business/strategy"
+      ],
+      "weakCategories": []
+    },
+    "k5": {
+      "name": "Grok 4 Fast",
+      "totalDebates": 1,
+      "winRate": 1,
+      "avgResponseTime": 15000,
+      "costEfficiency": 0.9,
+      "specializations": [],
+      "strongCategories": [
+        "tech/debug"
+      ],
+      "weakCategories": []
+    }
+  },
+  "patternSummary": {
+    "underdogWins": 0,
+    "consistentFailures": 0,
+    "specialists": 0,
+    "emergingTrends": 0,
+    "performanceShifts": 0,
+    "categoryInsights": 0,
+    "modelSynergies": 0,
+    "timeBasedPatterns": 0,
+    "lastAnalyzed": null
+  },
+  "optimizationResults": {
+    "learningLevel": "Novice",
+    "totalCategoryRules": 5,
+    "costOptimizationEnabled": false,
+    "patternOptimizationEnabled": false,
+    "advancedOptimizationsEnabled": false,
+    "enabledCategories": 0,
+    "lastUpdated": 1758565044767,
+    "costSavingsAchieved": 165,
+    "performanceImprovements": 0,
+    "optimizationsApplied": 5
+  },
+  "recommendations": [],
+  "costAnalysis": {
+    "totalDebates": 15,
+    "baselineCost": 15,
+    "actualCost": 9.7,
+    "totalSavings": 35.333333333333336,
+    "averageCostPerDebate": 0.6466666666666666,
+    "costBreakdown": {
+      "k1": {
+        "debates": 4,
+        "unitCost": 1,
+        "totalCost": 4
+      },
+      "k2": {
+        "debates": 5,
+        "unitCost": 0.7,
+        "totalCost": 3.5
+      },
+      "k3": {
+        "debates": 3,
+        "unitCost": 0.3,
+        "totalCost": 0.8999999999999999
+      },
+      "k4": {
+        "debates": 2,
+        "unitCost": 0.6,
+        "totalCost": 1.2
+      },
+      "k5": {
+        "debates": 1,
+        "unitCost": 0.1,
+        "totalCost": 0.1
+      }
+    }
+  },
+  "learningProgress": {
+    "currentLevel": "Novice",
+    "totalDebatesProcessed": 5,
+    "milestones": [
+      {
+        "name": "Basic Category Detection",
+        "threshold": 10,
+        "achieved": false,
+        "progress": 0.5
+      },
+      {
+        "name": "Cost Optimization",
+        "threshold": 50,
+        "achieved": false,
+        "progress": 0.1
+      },
+      {
+        "name": "Pattern Recognition",
+        "threshold": 100,
+        "achieved": false,
+        "progress": 0.05
+      },
+      {
+        "name": "Advanced Optimization",
+        "threshold": 500,
+        "achieved": false,
+        "progress": 0.01
+      }
+    ],
+    "nextMilestone": {
+      "name": "Basic Category Detection",
+      "threshold": 10,
+      "achieved": false,
+      "progress": 0.5
+    },
+    "progressPercentage": 0
+  }
+}

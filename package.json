@@ -20,6 +20,8 @@
     "test:coverage": "jest --coverage",
     "test:mcp": "node test-mcp-client.js",
     "test:models": "./test-consensus.sh",
+    "test:confidence": "node test-confidence-scorer.js",
+    "test:mcp-confidence": "node test-mcp-confidence.js",
     "test:all": "npm run health && npm test",
     "health": "node health-check.js",
     "install:setup": "node install.js",
@@ -28,7 +30,11 @@
     "prod": "NODE_ENV=production node index.js",
     "validate": "node -e \"const { config } = require('./src/config'); try { config.validate(); console.log('✅ Configuration is valid'); } catch (e) { console.error('❌ Configuration validation failed:', e.message); process.exit(1); }\"",
     "config:show": "node -e \"const { config } = require('./src/config'); console.log(JSON.stringify(config.getAll(), null, 2));\"",
-    "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\""
+    "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\"",
+    "learning:test": "node test-learning-system.js",
+    "learning:report": "node -e \"import('./src/learning/learning-system.js').then(async ({LearningSystem}) => {const ls = new LearningSystem(); await ls.initialize(); const report = await ls.generateComprehensiveReport(); console.log('📋 Learning report generated successfully'); });\"",
+    "learning:status": "node -e \"import('./src/learning/learning-system.js').then(async ({LearningSystem}) => {const ls = new LearningSystem(); await ls.initialize(); const status = ls.getQuickStatus(); console.log('🧠 Learning System Status:', JSON.stringify(status, null, 2)); });\"",
+    "learning:reset": "node -e \"import('./src/learning/learning-system.js').then(async ({LearningSystem}) => {const ls = new LearningSystem(); await ls.initialize(); await ls.resetLearningData(); console.log('🔄 Learning data reset complete'); });\""
   },
   "keywords": [
     "mcp",
@@ -44,9 +50,11 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "axios": "^1.11.0",
+    "sqlite3": "^5.1.7",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "uuid": "^10.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

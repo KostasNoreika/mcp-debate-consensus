@@ -489,13 +489,46 @@ class ClaudeCliDebate {
         }
       }
 
+      // Record performance tracking data
+      if (this.trackingEnabled) {
+        try {
+          const debateEndTime = Date.now();
+          const totalTimeSeconds = Math.round((debateEndTime - startTime) / 1000);
+
+          const debateResult = {
+            solution: final,
+            winner: best.model,
+            score: best.score.total,
+            contributors: Object.keys(improvements),
+            toolsUsed: true
+          };
+
+          const metadata = {
+            question,
+            projectPath,
+            modelsUsed: this.selectedModels?.map(m => m.name) || Object.keys(proposals),
+            proposals,
+            improvements,
+            failedModels: this.debateMetrics.failedModels,
+            modelTimes: this.debateMetrics.modelTimes,
+            totalTimeSeconds,
+            category: this.selectionAnalysis?.category,
+            complexity: this.selectionAnalysis?.complexityLevel
+          };
+
+          await this.performanceTracker.recordDebate(debateResult, metadata);
+          console.log('📊 Performance data recorded successfully');
+        } catch (error) {
+          console.warn('⚠️ Performance tracking failed:', error.message);
+        }
+      }
+
       // Save log
       await this.saveLog(question, projectPath, proposals, best, improvements, final, confidence);
 
-      // Report completion
-      this.progressReporter.complete('Debate completed successfully');
-
-      return {
+      // Prepare final result
+      const responseTime = Date.now() - startTime;
+      const result = {
         solution: final,
         winner: best.model,
         score: best.score.total,
@@ -505,8 +538,37 @@ class ClaudeCliDebate {
         selectionMethod: modelConfig ? 'direct' : (this.useIntelligentSelection ? 'intelligent' : 'all'),
         modelConfiguration: modelConfig || 'auto',
         confidence: confidence,
-        verification: verificationResults
+        verification: verificationResults,
+        responseTimeMs: responseTime,
+        fromCache: false
       };
+
+      // Store in cache if caching is enabled
+      if (this.cachingEnabled) {
+        try {
+          const cacheOptions = {
+            projectPath,
+            modelConfig,
+            useIntelligentSelection: this.useIntelligentSelection,
+            models: this.selectedModels
+          };
+
+          // Add confidence to result for cache storage
+          result.confidence = confidence.score / 100; // Convert percentage to decimal
+
+          await this.debateCache.store(question, result, cacheOptions);
+
+          console.log(`💾 Result cached for future use`);
+          console.log(`📊 Cache stats: ${this.debateCache.getStats().hits} hits / ${this.debateCache.getStats().misses} misses (${Math.round(this.debateCache.getStats().hitRate * 100)}% hit rate)`);
+        } catch (error) {
+          console.warn('⚠️ Failed to cache result:', error.message);
+        }
+      }
+
+      // Report completion
+      this.progressReporter.complete('Debate completed successfully');
+
+      return result;
     } catch (error) {
       this.progressReporter.error(`Debate failed: ${error.message}`, error);
       throw error;
@@ -584,6 +646,12 @@ INSTRUCTIONS:
         // Update status to completed
         this.progressReporter.updateModelStatus(model.name, 'completed');
         console.error(`  ✅ ${model.name} completed (${duration}s, ${result.length} chars)`);
+
+        // Track model timing for performance analysis
+        if (this.trackingEnabled && this.debateMetrics) {
+          this.debateMetrics.modelTimes[model.name] = duration;
+        }
+
         return result;
 
       } catch (error) {
@@ -592,6 +660,12 @@ INSTRUCTIONS:
         if (attempt === maxRetries) {
           console.error(`  🚫 ${model.name} failed after ${maxRetries} attempts`);
           this.progressReporter.updateModelStatus(model.name, 'failed');
+
+          // Track failed models for performance analysis
+          if (this.trackingEnabled && this.debateMetrics) {
+            this.debateMetrics.failedModels.push(model.name);
+          }
+
           return null;
         }
 
@@ -1162,6 +1236,109 @@ Provide specific improvements and enhancements.`;
     const logFile = path.join(this.logsDir, `claude_cli_debate_${Date.now()}.json`);
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
     console.log(`\n💾 Log saved: ${logFile}`);
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    if (!this.cachingEnabled) {
+      return { enabled: false, message: 'Caching is disabled' };
+    }
+    return {
+      enabled: true,
+      ...this.debateCache.getStats(),
+      invalidationStats: this.cacheInvalidator.getInvalidationStats()
+    };
+  }
+
+  /**
+   * Clear all cache entries
+   */
+  clearCache() {
+    if (!this.cachingEnabled) {
+      throw new Error('Caching is disabled');
+    }
+    this.debateCache.clear();
+    console.log('🗑️ Cache cleared successfully');
+  }
+
+  /**
+   * Invalidate cache entries by project path
+   */
+  async invalidateCacheByProject(projectPath) {
+    if (!this.cachingEnabled) {
+      throw new Error('Caching is disabled');
+    }
+    const invalidatedCount = await this.debateCache.invalidateByContext(projectPath);
+    console.log(`🔄 Invalidated ${invalidatedCount} cache entries for project: ${projectPath}`);
+    return invalidatedCount;
+  }
+
+  /**
+   * Warm cache with common questions
+   */
+  async warmCache(questions, options = {}) {
+    if (!this.cachingEnabled) {
+      throw new Error('Caching is disabled');
+    }
+
+    console.log(`🔥 Starting cache warming with ${questions.length} questions...`);
+    const results = [];
+
+    for (const question of questions) {
+      try {
+        console.log(`🔥 Warming cache for: ${question.substring(0, 50)}...`);
+        const result = await this.runDebate(question, options.projectPath, options.modelConfig, {
+          ...options,
+          bypassCache: false // Ensure we don't bypass cache during warming
+        });
+        results.push({ question, success: true, result });
+      } catch (error) {
+        console.warn(`Failed to warm cache for question: ${error.message}`);
+        results.push({ question, success: false, error: error.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    console.log(`🔥 Cache warming completed: ${successCount}/${questions.length} questions processed`);
+
+    return {
+      total: questions.length,
+      successful: successCount,
+      failed: questions.length - successCount,
+      results
+    };
+  }
+
+  /**
+   * Configure cache settings
+   */
+  configureCache(options = {}) {
+    if (!this.cachingEnabled) {
+      throw new Error('Caching is disabled');
+    }
+
+    if (options.maxAge !== undefined) {
+      this.debateCache.maxAge = options.maxAge;
+      this.cacheInvalidator.maxAge = options.maxAge;
+    }
+
+    if (options.maxEntries !== undefined) {
+      this.debateCache.maxEntries = options.maxEntries;
+    }
+
+    if (options.minConfidence !== undefined) {
+      this.cacheInvalidator.minConfidence = options.minConfidence;
+    }
+
+    this.cacheInvalidator.configure(options);
+
+    console.log('🔧 Cache configuration updated:', {
+      maxAge: this.debateCache.maxAge,
+      maxEntries: this.debateCache.maxEntries,
+      minConfidence: this.cacheInvalidator.minConfidence
+    });
   }
 }
 

@@ -5,11 +5,15 @@
  * Models see all responses and iterate until consensus or max rounds.
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
-const { LLMSemanticEvaluator } = require('./llm-semantic-evaluator');
-const { ProgressReporter } = require('./progress-reporter');
+import { spawn } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { LLMSemanticEvaluator } from './llm-semantic-evaluator.js';
+import { ProgressReporter } from './progress-reporter.js';
+import { GeminiCoordinator } from './gemini-coordinator.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Tracks debate history and positions across iterations
@@ -210,6 +214,10 @@ class IterativeDebateOrchestrator {
       verbose: process.env.DEBATE_PROGRESS_VERBOSE === 'true'
     });
 
+    // Initialize Gemini Coordinator for intelligent model selection
+    this.geminiCoordinator = new GeminiCoordinator();
+    this.useIntelligentSelection = process.env.DISABLE_INTELLIGENT_SELECTION !== 'true';
+
     this.models = [
       {
         alias: 'k1',
@@ -234,6 +242,12 @@ class IterativeDebateOrchestrator {
         name: 'Gemini 2.5 Pro',
         role: 'Integration',
         wrapper: path.join(__dirname, '..', 'k4-wrapper.sh')
+      },
+      {
+        alias: 'k5',
+        name: 'Grok',
+        role: 'Speed & Efficiency',
+        wrapper: path.join(__dirname, '..', 'k5-wrapper.sh')
       }
     ];
 
@@ -246,10 +260,19 @@ class IterativeDebateOrchestrator {
     this.timeout = 60 * 60 * 1000; // 60 minutes
 
     this.logsDir = path.join(__dirname, '..', 'logs');
+
+    // Store selected models for current debate
+    this.selectedModels = null;
+    this.selectionAnalysis = null;
   }
 
   async initialize() {
     await fs.mkdir(this.logsDir, { recursive: true });
+
+    // Initialize Gemini Coordinator for intelligent model selection
+    if (this.useIntelligentSelection) {
+      await this.geminiCoordinator.initialize();
+    }
   }
 
   /**
@@ -262,11 +285,42 @@ class IterativeDebateOrchestrator {
     this.progressReporter.startHeartbeat();
     this.progressReporter.setPhase('Initializing iterative debate');
 
-    console.log('🎯 Iterative Multi-Model Debate System\n');
+    console.log('🎯 Iterative Multi-Model Debate System v2.0 (Intelligent Selection)\n');
     console.log('📍 Project:', projectPath);
     console.log('❓ Question:', question);
     console.log(`🔄 Max iterations: ${this.maxIterations}`);
     console.log(`🎯 Consensus threshold: ${this.consensusThreshold}%`);
+
+    // Phase 0: Intelligent Model Selection
+    if (this.useIntelligentSelection) {
+      this.progressReporter.setPhase('Analyzing question for optimal model selection');
+      console.log('\n🧠 PHASE 0: Intelligent Model Selection\n');
+
+      try {
+        this.selectionAnalysis = await this.geminiCoordinator.analyzeQuestion(question, {
+          projectPath,
+          urgency: 0.5 // Default urgency, could be parameter
+        });
+
+        this.selectedModels = this.getSelectedModelsFromAnalysis(this.selectionAnalysis);
+
+        console.log(`📊 Analysis: ${this.selectionAnalysis.category} (${this.selectionAnalysis.complexityLevel}/${this.selectionAnalysis.criticalityLevel})`);
+        console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
+        console.log(`💰 Cost reduction: ${this.selectionAnalysis.costReduction}%`);
+        console.log(`⚡ Speed improvement: ${this.selectionAnalysis.estimatedSpeedGain}`);
+        console.log(`🤖 Analysis source: ${this.selectionAnalysis.analysisSource}`);
+        console.log(`📝 Reasoning: ${this.selectionAnalysis.reasoning}`);
+
+      } catch (error) {
+        console.warn('⚠️ Intelligent selection failed, using all models:', error.message);
+        this.selectedModels = this.models; // Fallback to all models
+        this.selectionAnalysis = null;
+      }
+    } else {
+      console.log('\n📋 Using all available models (intelligent selection disabled)');
+      this.selectedModels = this.models;
+    }
+
     console.log('\n' + '='.repeat(70) + '\n');
 
     try {
@@ -333,12 +387,65 @@ class IterativeDebateOrchestrator {
   }
 
   /**
-   * Get initial proposals from all models
+   * Convert analysis results to selected model configurations
+   */
+  getSelectedModelsFromAnalysis(analysis) {
+    const selectedModels = [];
+
+    for (const modelSpec of analysis.selectedModels) {
+      const [alias, instances] = modelSpec.split(':');
+      const instanceCount = parseInt(instances) || 1;
+
+      const modelConfig = this.models.find(m => m.alias === alias);
+      if (modelConfig) {
+        // Add the base model
+        selectedModels.push({
+          ...modelConfig,
+          instanceId: 1,
+          totalInstances: instanceCount
+        });
+
+        // Add parallel instances if specified
+        for (let i = 2; i <= instanceCount; i++) {
+          selectedModels.push({
+            ...modelConfig,
+            name: `${modelConfig.name} (Instance ${i})`,
+            instanceId: i,
+            totalInstances: instanceCount
+          });
+        }
+      }
+    }
+
+    // Ensure minimum 3 models for consensus unless trivial task
+    if (selectedModels.length < 3 && analysis.complexityLevel !== 'trivial') {
+      const missingCount = 3 - selectedModels.length;
+      const availableModels = this.models.filter(m =>
+        !selectedModels.some(sm => sm.alias === m.alias)
+      );
+
+      for (let i = 0; i < Math.min(missingCount, availableModels.length); i++) {
+        selectedModels.push({
+          ...availableModels[i],
+          instanceId: 1,
+          totalInstances: 1
+        });
+      }
+    }
+
+    return selectedModels;
+  }
+
+  /**
+   * Get initial proposals from selected models
    */
   async getInitialProposals(question, projectPath) {
     const proposals = {};
-    
-    const proposalPromises = this.models.map(async (model) => {
+
+    // Use selected models instead of all models
+    const modelsToUse = this.selectedModels || this.models;
+
+    const proposalPromises = modelsToUse.map(async (model) => {
       const prompt = `Analyze and answer this question using your expertise in ${model.role}:
 
 ${question}
@@ -443,8 +550,11 @@ Provide a comprehensive response based on your specialization.`;
    */
   async getUpdatedPositions(question, currentResponses, debateState, projectPath) {
     const updatedResponses = {};
-    
-    const updatePromises = this.models.map(async (model) => {
+
+    // Use selected models instead of all models
+    const modelsToUse = this.selectedModels || this.models;
+
+    const updatePromises = modelsToUse.map(async (model) => {
       // Don't send model its own response
       const otherResponses = Object.entries(currentResponses)
         .filter(([name, _]) => name !== model.name)
@@ -533,8 +643,21 @@ Provide your updated response:`;
       finalResponses
     );
     
-    let synthesis = `# Iterative Consensus Solution\n\n`;
+    let synthesis = `# Iterative Consensus Solution v2.0\n\n`;
     synthesis += `**Question:** ${question}\n\n`;
+
+    // Add intelligent selection analysis if available
+    if (this.selectionAnalysis) {
+      synthesis += `**Intelligent Model Selection:**\n`;
+      synthesis += `- Category: ${this.selectionAnalysis.category}\n`;
+      synthesis += `- Complexity: ${this.selectionAnalysis.complexityLevel} (${(this.selectionAnalysis.complexity * 100).toFixed(0)}%)\n`;
+      synthesis += `- Criticality: ${this.selectionAnalysis.criticalityLevel} (${(this.selectionAnalysis.criticality * 100).toFixed(0)}%)\n`;
+      synthesis += `- Models selected: ${this.selectionAnalysis.selectedModels.join(', ')}\n`;
+      synthesis += `- Cost reduction: ${this.selectionAnalysis.costReduction}%\n`;
+      synthesis += `- Speed improvement: ${this.selectionAnalysis.estimatedSpeedGain}\n`;
+      synthesis += `- Analysis source: ${this.selectionAnalysis.analysisSource}\n\n`;
+    }
+
     synthesis += `**Debate Statistics:**\n`;
     synthesis += `- Total iterations: ${debateState.currentRound}\n`;
     synthesis += `- Final consensus: ${debateState.consensusTrend[debateState.consensusTrend.length - 1]}%\n`;
@@ -656,7 +779,7 @@ Provide your updated response:`;
   }
 }
 
-module.exports = { 
+export {
   IterativeDebateOrchestrator,
   ConsensusAnalyzer,
   DebateMemory

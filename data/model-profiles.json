@@ -1,0 +1,339 @@
+{
+  "k1": {
+    "name": "Claude Opus 4.1",
+    "role": "Architecture",
+    "strengths": [
+      "analysis",
+      "education",
+      "writing",
+      "system_design"
+    ],
+    "weaknesses": [
+      "speed",
+      "cost"
+    ],
+    "winRate": {
+      "tech/code": 0,
+      "education/explain": 1,
+      "math/calculation": 0,
+      "business/strategy": 1
+    },
+    "categoryPerformance": {
+      "tech/code": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.8,
+        "avgScore": 0.8
+      },
+      "education/explain": {
+        "debates": 1,
+        "wins": 1,
+        "totalScore": 0.9,
+        "avgScore": 0.9
+      },
+      "math/calculation": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.7,
+        "avgScore": 0.7
+      },
+      "business/strategy": {
+        "debates": 1,
+        "wins": 1,
+        "totalScore": 0.85,
+        "avgScore": 0.85
+      }
+    },
+    "totalDebates": 4,
+    "totalWins": 2,
+    "avgResponseTime": 44375,
+    "costEfficiency": 0.3,
+    "lastUpdated": 1758565044766,
+    "specializations": [],
+    "performanceTrends": [
+      {
+        "timestamp": 1758565044765,
+        "category": "tech/code",
+        "score": 0.8,
+        "won": false,
+        "responseTime": 40000
+      },
+      {
+        "timestamp": 1758565044765,
+        "category": "education/explain",
+        "score": 0.9,
+        "won": true,
+        "responseTime": 45000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "math/calculation",
+        "score": 0.7,
+        "won": false,
+        "responseTime": 35000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "business/strategy",
+        "score": 0.85,
+        "won": true,
+        "responseTime": 50000
+      }
+    ]
+  },
+  "k2": {
+    "name": "GPT-5",
+    "role": "Testing",
+    "strengths": [
+      "testing",
+      "debugging",
+      "quality_assurance"
+    ],
+    "weaknesses": [
+      "creativity",
+      "open_ended"
+    ],
+    "winRate": {
+      "tech/debug": 0,
+      "tech/code": 0,
+      "education/explain": 0,
+      "math/calculation": 0,
+      "business/strategy": 0
+    },
+    "categoryPerformance": {
+      "tech/debug": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.7,
+        "avgScore": 0.7
+      },
+      "tech/code": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.7,
+        "avgScore": 0.7
+      },
+      "education/explain": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.65,
+        "avgScore": 0.65
+      },
+      "math/calculation": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.8,
+        "avgScore": 0.8
+      },
+      "business/strategy": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.7,
+        "avgScore": 0.7
+      }
+    },
+    "totalDebates": 5,
+    "totalWins": 0,
+    "avgResponseTime": 27375,
+    "costEfficiency": 0.6,
+    "lastUpdated": 1758565044766,
+    "specializations": [],
+    "performanceTrends": [
+      {
+        "timestamp": 1758565044763,
+        "category": "tech/debug",
+        "score": 0.7,
+        "won": false,
+        "responseTime": 25000
+      },
+      {
+        "timestamp": 1758565044765,
+        "category": "tech/code",
+        "score": 0.7,
+        "won": false,
+        "responseTime": 35000
+      },
+      {
+        "timestamp": 1758565044765,
+        "category": "education/explain",
+        "score": 0.65,
+        "won": false,
+        "responseTime": 25000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "math/calculation",
+        "score": 0.8,
+        "won": false,
+        "responseTime": 22000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "business/strategy",
+        "score": 0.7,
+        "won": false,
+        "responseTime": 30000
+      }
+    ]
+  },
+  "k3": {
+    "name": "Qwen 3 Max",
+    "role": "Algorithms",
+    "strengths": [
+      "algorithms",
+      "math",
+      "optimization",
+      "data_structures"
+    ],
+    "weaknesses": [
+      "language_nuance",
+      "creative_writing"
+    ],
+    "winRate": {
+      "tech/debug": 0,
+      "tech/code": 1,
+      "math/calculation": 1
+    },
+    "categoryPerformance": {
+      "tech/debug": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.6,
+        "avgScore": 0.6
+      },
+      "tech/code": {
+        "debates": 1,
+        "wins": 1,
+        "totalScore": 0.95,
+        "avgScore": 0.95
+      },
+      "math/calculation": {
+        "debates": 1,
+        "wins": 1,
+        "totalScore": 0.92,
+        "avgScore": 0.92
+      }
+    },
+    "totalDebates": 3,
+    "totalWins": 2,
+    "avgResponseTime": 21500,
+    "costEfficiency": 0.8,
+    "lastUpdated": 1758565044766,
+    "specializations": [],
+    "performanceTrends": [
+      {
+        "timestamp": 1758565044763,
+        "category": "tech/debug",
+        "score": 0.6,
+        "won": false,
+        "responseTime": 30000
+      },
+      {
+        "timestamp": 1758565044765,
+        "category": "tech/code",
+        "score": 0.95,
+        "won": true,
+        "responseTime": 20000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "math/calculation",
+        "score": 0.92,
+        "won": true,
+        "responseTime": 18000
+      }
+    ]
+  },
+  "k4": {
+    "name": "Gemini 2.5 Pro",
+    "role": "Integration",
+    "strengths": [
+      "integration",
+      "completeness",
+      "multimodal"
+    ],
+    "weaknesses": [
+      "specialized_domains"
+    ],
+    "winRate": {
+      "education/explain": 0,
+      "business/strategy": 0
+    },
+    "categoryPerformance": {
+      "education/explain": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.75,
+        "avgScore": 0.75
+      },
+      "business/strategy": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0.8,
+        "avgScore": 0.8
+      }
+    },
+    "totalDebates": 2,
+    "totalWins": 0,
+    "avgResponseTime": 35000,
+    "costEfficiency": 0.7,
+    "lastUpdated": 1758565044766,
+    "specializations": [],
+    "performanceTrends": [
+      {
+        "timestamp": 1758565044765,
+        "category": "education/explain",
+        "score": 0.75,
+        "won": false,
+        "responseTime": 30000
+      },
+      {
+        "timestamp": 1758565044766,
+        "category": "business/strategy",
+        "score": 0.8,
+        "won": false,
+        "responseTime": 40000
+      }
+    ]
+  },
+  "k5": {
+    "name": "Grok 4 Fast",
+    "role": "Fast Reasoning",
+    "strengths": [
+      "speed",
+      "debugging",
+      "cost",
+      "rapid_reasoning"
+    ],
+    "weaknesses": [
+      "complex_analysis",
+      "long_form_content"
+    ],
+    "winRate": {
+      "tech/debug": 1
+    },
+    "categoryPerformance": {
+      "tech/debug": {
+        "debates": 1,
+        "wins": 1,
+        "totalScore": 0.9,
+        "avgScore": 0.9
+      }
+    },
+    "totalDebates": 1,
+    "totalWins": 1,
+    "avgResponseTime": 15000,
+    "costEfficiency": 0.9,
+    "lastUpdated": 1758565044763,
+    "specializations": [],
+    "performanceTrends": [
+      {
+        "timestamp": 1758565044763,
+        "category": "tech/debug",
+        "score": 0.9,
+        "won": true,
+        "responseTime": 15000
+      }
+    ]
+  }
+}

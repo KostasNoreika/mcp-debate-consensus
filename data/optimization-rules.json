@@ -1,0 +1,64 @@
+{
+  "categoryRules": {
+    "tech/debug": [
+      {
+        "modelId": "k5",
+        "multiplier": 1.2,
+        "confidence": 1,
+        "confidenceBoost": 1.1,
+        "conditions": {},
+        "learned": 1758565044764
+      }
+    ],
+    "tech/code": [
+      {
+        "modelId": "k3",
+        "multiplier": 1.2,
+        "confidence": 1,
+        "confidenceBoost": 1.1,
+        "conditions": {},
+        "learned": 1758565044765
+      }
+    ],
+    "education/explain": [
+      {
+        "modelId": "k1",
+        "multiplier": 1.2,
+        "confidence": 1,
+        "confidenceBoost": 1.1,
+        "conditions": {},
+        "learned": 1758565044766
+      }
+    ],
+    "math/calculation": [
+      {
+        "modelId": "k3",
+        "multiplier": 1.2,
+        "confidence": 1,
+        "confidenceBoost": 1.1,
+        "conditions": {},
+        "learned": 1758565044766
+      }
+    ],
+    "business/strategy": [
+      {
+        "modelId": "k1",
+        "multiplier": 1.2,
+        "confidence": 1,
+        "confidenceBoost": 1.1,
+        "conditions": {},
+        "learned": 1758565044767
+      }
+    ]
+  },
+  "costOptimizations": {},
+  "performanceBoosts": {},
+  "selectionStrategies": {},
+  "learningMilestones": {
+    "debates10": false,
+    "debates50": false,
+    "debates100": false,
+    "debates500": false
+  },
+  "lastUpdated": 1758565044767
+}
