@@ -1,10 +1,15 @@
-const { ClaudeCliDebate } = require('./src/claude-cli-debate.js');
-const { IterativeDebateOrchestrator } = require('./src/iterative-debate-orchestrator.js');
-const { DebateHistory } = require('./src/history.js');
-const { Security } = require('./src/security.js');
-const { spawn } = require('child_process');
-const axios = require('axios');
-const path = require('path');
+import { ClaudeCliDebate } from './src/claude-cli-debate.js';
+import { IterativeDebateOrchestrator } from './src/iterative-debate-orchestrator.js';
+import { DebateHistory } from './src/history.js';
+import { Security } from './src/security.js';
+import { StreamHandler } from './src/streaming/stream-handler.js';
+import { ProgressTracker } from './src/streaming/progress-tracker.js';
+import { spawn } from 'child_process';
+import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Create dynamic imports for MCP SDK since it uses ES modules
 let Server, StdioServerTransport, ListToolsRequestSchema, CallToolRequestSchema;
@@ -32,6 +37,9 @@ class DebateConsensusMCP {
         this.iterativeDebate = new IterativeDebateOrchestrator();
         this.history = new DebateHistory();
         this.security = new Security();
+        // Initialize streaming components
+        this.streamHandler = new StreamHandler();
+        this.progressTracker = new ProgressTracker({ verbose: true });
         this.initialized = false;
         this.proxyProcess = null;
         this.PROXY_PORT = 3456;
@@ -60,17 +68,21 @@ class DebateConsensusMCP {
             tools: [
                 {
                     name: 'debate',
-                    description: 'AUTOMATICALLY use when: complex technical questions, architecture design, debugging stubborn issues, optimization advice, technology choices, security analysis, or "debate this". Runs 5 expert AI models (Claude Opus, GPT-5, Qwen, Gemini, Grok) in structured debate with file/command access. Best for: decisions needing multiple perspectives, hard bugs resisting single-model solutions, critical technical choices.',
+                    description: 'AUTOMATICALLY use when: complex technical questions, architecture design, debugging stubborn issues, optimization advice, technology choices, security analysis, or "debate this". Features: (1) INTELLIGENT MODEL SELECTION v2.0 - Gemini analyzes your question to auto-select optimal 3-5 models from 5 experts for 50% cost reduction, (2) PARALLEL INSTANCE SUPPORT - Use syntax like "k1:2,k2,k3:3" for multiple instances with different seeds/temperatures for enhanced consensus, (3) Full MCP tool access for all models. Best for: critical decisions, stubborn bugs, high-stakes technical choices.',
                     inputSchema: {
                         type: 'object',
                         properties: {
-                            question: { 
+                            question: {
                                 type: 'string',
                                 description: 'The problem to solve or analyze'
                             },
                             projectPath: {
                                 type: 'string',
                                 description: 'Project path to analyze (optional, defaults to current)'
+                            },
+                            modelConfig: {
+                                type: 'string',
+                                description: 'Manual model configuration (optional). Format: "k1:2,k2,k3:3" where k1:2 means 2 parallel instances of Claude Opus, k2 means 1 instance of GPT-5, k3:3 means 3 instances of Qwen. Available models: k1=Claude Opus (architecture), k2=GPT-5 (testing), k3=Qwen (algorithms), k4=Gemini (integration), k5=Grok (fast reasoning). Omit for intelligent auto-selection.'
                             }
                         },
                         required: ['question']
@@ -87,12 +99,34 @@ class DebateConsensusMCP {
                     }
                 },
                 {
-                    name: 'iterative_debate',
-                    description: 'Run an iterative multi-LLM debate with consensus building (models see all responses and iterate until agreement)',
+                    name: 'streaming_debate',
+                    description: 'Run a debate with REAL-TIME STREAMING for better UX. Shows live progress: models thinking, completion status, progressive results. Same intelligent model selection and full MCP tool access as regular debate, but with streaming updates for better perceived performance.',
                     inputSchema: {
                         type: 'object',
                         properties: {
-                            question: { 
+                            question: {
+                                type: 'string',
+                                description: 'The problem to solve or analyze'
+                            },
+                            projectPath: {
+                                type: 'string',
+                                description: 'Project path to analyze (optional, defaults to current)'
+                            },
+                            streamChunkSize: {
+                                type: 'number',
+                                description: 'Size of streaming chunks for progressive display (default: 500)'
+                            }
+                        },
+                        required: ['question']
+                    }
+                },
+                {
+                    name: 'iterative_debate',
+                    description: 'Run an iterative multi-LLM debate with INTELLIGENT MODEL SELECTION v2.0 and consensus building (Gemini selects optimal models, then they see all responses and iterate until agreement)',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            question: {
                                 type: 'string',
                                 description: 'The problem to solve or analyze'
                             },
@@ -105,11 +139,32 @@ class DebateConsensusMCP {
                                 description: 'Maximum debate iterations (default: 5)'
                             },
                             consensusThreshold: {
-                                type: 'number', 
+                                type: 'number',
                                 description: 'Consensus threshold percentage for early exit (default: 90)'
                             }
                         },
                         required: ['question']
+                    }
+                },
+                {
+                    name: 'confidence_analysis',
+                    description: 'Analyze confidence metrics for a completed debate or evaluate confidence factors for any AI consensus output. Provides detailed scoring with factors like model agreement, verification status, historical accuracy, and actionable recommendations.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            historyId: {
+                                type: 'string',
+                                description: 'ID of a completed debate to analyze (optional)'
+                            },
+                            question: {
+                                type: 'string',
+                                description: 'The original question/problem (required if no historyId)'
+                            },
+                            proposals: {
+                                type: 'object',
+                                description: 'Model responses to analyze for confidence (optional - will fetch from history if historyId provided)'
+                            }
+                        }
                     }
                 }
             ]
@@ -127,11 +182,17 @@ class DebateConsensusMCP {
                     this.security.checkRateLimit('debate', 5, 300000); // 5 debates per 5 minutes
                     
                     console.error('Starting synchronous debate for:', sanitizedQuestion);
-                    
+
+                    // Log model configuration if provided
+                    if (args.modelConfig) {
+                        console.error('Using model configuration:', args.modelConfig);
+                    }
+
                     // Run debate synchronously and wait for completion
                     const result = await this.debate.runDebate(
                         sanitizedQuestion,
-                        validatedPath
+                        validatedPath,
+                        args.modelConfig
                     );
                     
                     // Save to history
@@ -157,7 +218,146 @@ class DebateConsensusMCP {
                     };
                 }
             }
-            
+
+            if (name === 'streaming_debate') {
+                try {
+                    // Security validation
+                    const sanitizedQuestion = this.security.validateQuestion(args.question);
+                    const validatedPath = await this.security.validateProjectPath(args.projectPath);
+                    this.security.checkRateLimit('streaming_debate', 3, 300000); // 3 streaming debates per 5 minutes
+
+                    console.error('Starting streaming debate for:', sanitizedQuestion);
+
+                    // Configure stream handler
+                    if (args.streamChunkSize) {
+                        this.streamHandler.chunkSize = args.streamChunkSize;
+                    }
+
+                    // Initialize progress tracker with debate configuration
+                    this.progressTracker.initialize({
+                        totalModels: this.debate.models.length,
+                        models: this.debate.models
+                    });
+
+                    // Collect streaming results
+                    let streamingResults = '';
+                    let finalResult = null;
+                    let modelUpdates = [];
+                    let stageUpdates = [];
+
+                    try {
+                        // Stream the debate process
+                        for await (const update of this.streamHandler.streamDebate(this.debate, sanitizedQuestion, validatedPath)) {
+                            switch (update.type) {
+                                case 'stage':
+                                    stageUpdates.push({
+                                        stage: update.stage,
+                                        message: update.message,
+                                        progress: update.progress,
+                                        timestamp: update.timestamp
+                                    });
+
+                                    streamingResults += `\n[${this.formatTimestamp(update.timestamp)}] 🔄 ${update.message} (${update.progress}%)\n`;
+
+                                    if (update.models) {
+                                        const modelStatus = Object.entries(update.models)
+                                            .map(([alias, status]) => `${alias}: ${status}`)
+                                            .join(', ');
+                                        streamingResults += `   Models: ${modelStatus}\n`;
+                                    }
+                                    break;
+
+                                case 'model_selection':
+                                    streamingResults += `\n📊 **Intelligent Model Selection:**\n`;
+                                    streamingResults += `   Category: ${update.analysis.category}\n`;
+                                    streamingResults += `   Complexity: ${update.analysis.complexity}/${update.analysis.criticality}\n`;
+                                    streamingResults += `   Selected: ${update.selectedModels.map(m => m.name).join(', ')}\n`;
+                                    streamingResults += `   Cost reduction: ${update.analysis.costReduction}%\n`;
+                                    streamingResults += `   Speed gain: ${update.analysis.speedGain}\n`;
+                                    streamingResults += `   Reasoning: ${update.analysis.reasoning}\n\n`;
+                                    break;
+
+                                case 'model_complete':
+                                    modelUpdates.push(update);
+                                    streamingResults += `[${this.formatTimestamp(update.timestamp)}] ✅ ${update.model.name} completed (${update.duration}ms)\n`;
+                                    if (update.result) {
+                                        streamingResults += `   Preview: ${update.result.substring(0, 200)}...\n\n`;
+                                    }
+                                    break;
+
+                                case 'model_error':
+                                    streamingResults += `[${this.formatTimestamp(update.timestamp)}] ❌ ${update.model.name} failed: ${update.error}\n\n`;
+                                    break;
+
+                                case 'warning':
+                                    streamingResults += `[${this.formatTimestamp(update.timestamp)}] ⚠️ ${update.message}\n\n`;
+                                    break;
+
+                                case 'error':
+                                    streamingResults += `[${this.formatTimestamp(update.timestamp)}] 🚫 Error: ${update.message}\n\n`;
+                                    break;
+
+                                default:
+                                    // Log other update types for debugging
+                                    if (update.stage === 'complete') {
+                                        streamingResults += `[${this.formatTimestamp(update.timestamp)}] 🎉 ${update.message}\n\n`;
+                                    }
+                            }
+                        }
+
+                        // After streaming completes, run the actual debate to get final result
+                        console.error('Streaming complete, running final debate...');
+                        finalResult = await this.debate.runDebate(sanitizedQuestion, validatedPath);
+
+                    } catch (streamError) {
+                        console.error('Streaming error:', streamError);
+                        streamingResults += `\n🚫 Streaming failed: ${streamError.message}\n`;
+                        streamingResults += `Falling back to standard debate...\n\n`;
+
+                        // Fallback to regular debate
+                        finalResult = await this.debate.runDebate(sanitizedQuestion, validatedPath);
+                    }
+
+                    // Save to history
+                    const historyId = await this.history.save({
+                        question: args.question,
+                        type: 'streaming',
+                        streamingLog: streamingResults,
+                        modelUpdates,
+                        stageUpdates,
+                        ...finalResult
+                    });
+
+                    // Format comprehensive response
+                    const response = `✅ Streaming Debate Complete!\n\n` +
+                                   `**Question:** ${args.question}\n` +
+                                   `**History ID:** ${historyId}\n` +
+                                   `**Winner:** ${finalResult.winner}\n` +
+                                   `**Score:** ${(typeof finalResult.score === 'number') ? finalResult.score.toFixed(2) :
+                                             (finalResult.score && typeof finalResult.score.total === 'number') ? finalResult.score.total.toFixed(2) : 'N/A'}\n` +
+                                   `**Contributors:** ${finalResult.contributors.join(', ')}\n\n` +
+                                   `## Streaming Progress Log\n\n${streamingResults}\n` +
+                                   `## Final Solution\n\n${finalResult.solution}\n\n` +
+                                   `---\n*Real-time streaming debate with intelligent model selection*`;
+
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: response
+                        }]
+                    };
+
+                } catch (error) {
+                    console.error('Streaming debate error:', error);
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: `Error running streaming debate: ${error.message}\n\nFalling back to regular debate functionality.`
+                        }]
+                    };
+                }
+            }
+
             if (name === 'iterative_debate') {
                 try {
                     // Security validation
@@ -211,7 +411,131 @@ class DebateConsensusMCP {
                     };
                 }
             }
-            
+
+            if (name === 'confidence_analysis') {
+                try {
+                    let debateData = null;
+
+                    // If historyId is provided, fetch the debate from history
+                    if (args.historyId) {
+                        const historicalDebate = await this.history.get(args.historyId);
+                        if (!historicalDebate) {
+                            return {
+                                content: [{
+                                    type: 'text',
+                                    text: `❌ No debate found with ID: ${args.historyId}`
+                                }]
+                            };
+                        }
+
+                        debateData = {
+                            question: historicalDebate.question,
+                            proposals: historicalDebate.proposals,
+                            responses: historicalDebate.proposals,
+                            winner: historicalDebate.winner,
+                            score: historicalDebate.score,
+                            improvements: historicalDebate.improvements || {},
+                            solution: historicalDebate.solution,
+                            toolsUsed: historicalDebate.toolsUsed,
+                            verificationScore: historicalDebate.confidence?.factors?.verification_passed / 100
+                        };
+                    } else if (args.question) {
+                        // Direct analysis of provided data
+                        debateData = {
+                            question: args.question,
+                            proposals: args.proposals || {},
+                            responses: args.proposals || {},
+                            winner: 'Unknown',
+                            score: 0.5,
+                            improvements: {},
+                            solution: 'Direct confidence analysis',
+                            toolsUsed: false
+                        };
+                    } else {
+                        return {
+                            content: [{
+                                type: 'text',
+                                text: '❌ Either historyId or question must be provided for confidence analysis'
+                            }]
+                        };
+                    }
+
+                    // Calculate confidence using the scorer
+                    const confidence = await this.debate.confidenceScorer.calculateConfidence(debateData);
+
+                    // Format detailed confidence report
+                    let response = `📊 **Confidence Analysis Results**\n\n`;
+
+                    if (args.historyId) {
+                        response += `**Debate ID:** ${args.historyId}\n`;
+                    }
+                    response += `**Question:** ${debateData.question}\n\n`;
+
+                    response += `## Overall Confidence Score\n`;
+                    response += `**${confidence.score}%** - ${confidence.level}\n\n`;
+
+                    response += `## Factor Breakdown\n`;
+                    response += `- **Model Agreement:** ${confidence.factors.model_agreement}% (weight: ${confidence.weights.model_agreement}%)\n`;
+                    response += `- **Verification Status:** ${confidence.factors.verification_passed}% (weight: ${confidence.weights.verification_passed}%)\n`;
+                    response += `- **Historical Accuracy:** ${confidence.factors.historical_accuracy}% (weight: ${confidence.weights.historical_accuracy}%)\n`;
+                    response += `- **Response Consistency:** ${confidence.factors.response_consistency}% (weight: ${confidence.weights.response_consistency}%)\n\n`;
+
+                    response += `## Analysis Summary\n`;
+                    response += `${confidence.analysis.summary}\n\n`;
+
+                    if (confidence.analysis.strengths.length > 0) {
+                        response += `## Strengths ✅\n`;
+                        confidence.analysis.strengths.forEach(strength => {
+                            response += `- ${strength}\n`;
+                        });
+                        response += '\n';
+                    }
+
+                    if (confidence.analysis.concerns.length > 0) {
+                        response += `## Concerns ⚠️\n`;
+                        confidence.analysis.concerns.forEach(concern => {
+                            response += `- ${concern}\n`;
+                        });
+                        response += '\n';
+                    }
+
+                    if (confidence.analysis.suggestions.length > 0) {
+                        response += `## Suggestions 💡\n`;
+                        confidence.analysis.suggestions.forEach(suggestion => {
+                            response += `- ${suggestion}\n`;
+                        });
+                        response += '\n';
+                    }
+
+                    response += `## Recommendation\n`;
+                    response += `${confidence.recommendation}\n\n`;
+
+                    response += `## Confidence Thresholds Reference\n`;
+                    Object.entries(confidence.thresholds).forEach(([level, threshold]) => {
+                        const icon = confidence.score >= threshold.min && confidence.score <= threshold.max ? '👈 **YOUR LEVEL**' : '';
+                        response += `- **${threshold.min}-${threshold.max}%:** ${level.replace('_', ' ').toUpperCase()} - ${threshold.action} (${threshold.review} review) ${icon}\n`;
+                    });
+
+                    response += `\n---\n*Confidence scoring system analyzing ${Object.keys(debateData.proposals || {}).length} model responses*`;
+
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: response
+                        }]
+                    };
+
+                } catch (error) {
+                    console.error('Confidence analysis error:', error);
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: `Error analyzing confidence: ${error.message}`
+                        }]
+                    };
+                }
+            }
+
             if (name === 'debate_history') {
                 const debates = await this.history.list(args.limit || 10);
                 
@@ -330,25 +654,65 @@ class DebateConsensusMCP {
     formatResponse(question, result, historyId) {
         // Prepare response with explanation about the question
         const solution = result.solution || 'No solution generated';
-        
+
+        // Build configuration info
+        let configInfo = [];
+        if (result.selectionMethod) {
+            configInfo.push(`Selection: ${result.selectionMethod}`);
+        }
+        if (result.modelConfiguration && result.modelConfiguration !== 'auto') {
+            configInfo.push(`Config: ${result.modelConfiguration}`);
+        }
+        if (result.parallelInstances) {
+            configInfo.push('Parallel instances enabled');
+        }
+        if (result.confidence) {
+            configInfo.push(`Confidence: ${result.confidence.score}% (${result.confidence.level})`);
+        }
+
+        const configText = configInfo.length > 0 ? ` (${configInfo.join(', ')})` : '';
+
         // Create a clean response focusing on the question
-        const response = `✅ Debate Complete!
+        let response = `✅ Debate Complete!${configText}
 
 **Question:** ${question}
 **History ID:** ${historyId}
 **Winner:** ${result.winner}
-**Score:** ${(typeof result.score === 'number') ? result.score.toFixed(2) : 
+**Score:** ${(typeof result.score === 'number') ? result.score.toFixed(2) :
              (result.score && typeof result.score.total === 'number') ? result.score.total.toFixed(2) : 'N/A'}
-**Contributors:** ${result.contributors.join(', ')}
+**Contributors:** ${result.contributors.join(', ')}`;
+
+        // Add confidence information if available
+        if (result.confidence) {
+            response += `
+**Confidence:** ${result.confidence.score}% (${result.confidence.level})`;
+            if (result.confidence.recommendation) {
+                response += `
+**Recommendation:** ${result.confidence.recommendation}`;
+            }
+        }
+
+        response += `
 
 ## Solution
 
 ${solution}
 
 ---
-*Multi-model consensus reached using k1-k4 models*`;
-        
+*Multi-model consensus with enhanced AI expert selection*`;
+
         return response;
+    }
+
+    /**
+     * Format timestamp for streaming logs
+     */
+    formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
     }
     
     async run() {
@@ -470,13 +834,14 @@ class DebateConsensusMCPTest {
         }
 
 // Export both for different use cases
-module.exports = { 
-    DebateConsensusMCP: process.env.NODE_ENV === 'test' ? DebateConsensusMCPTest : DebateConsensusMCP,
+export {
+    DebateConsensusMCP,
+    DebateConsensusMCPTest,
     createDebateConsensusMCP
 };
 
 // Direct execution
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     async function main() {
         const server = new DebateConsensusMCP();
         await server.run();

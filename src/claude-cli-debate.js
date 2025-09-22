@@ -5,15 +5,37 @@
  * giving each model full access to tools like reading files, running bash commands, etc.
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
+import { spawn } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Import the LLM-based semantic evaluator
-const { LLMSemanticEvaluator } = require('./llm-semantic-evaluator');
+import { LLMSemanticEvaluator } from './llm-semantic-evaluator.js';
 
 // Import progress reporter
-const { ProgressReporter } = require('./progress-reporter');
+import { ProgressReporter } from './progress-reporter.js';
+
+// Import Gemini Coordinator for intelligent model selection
+import { GeminiCoordinator } from './gemini-coordinator.js';
+
+// Import Confidence Scorer for confidence analysis
+import { ConfidenceScorer } from './confidence-scorer.js';
+
+// Import caching system
+import { DebateCache } from './cache/debate-cache.js';
+import { CacheInvalidator } from './cache/invalidator.js';
+
+// Import performance tracking system
+import { PerformanceTracker } from './performance-tracker.js';
+
+// Import Cross-Verification System
+import { CrossVerifier } from './cross-verifier.js';
+
+// Import Learning System
+import { LearningSystem } from './learning/learning-system.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class ClaudeCliDebate {
   constructor() {
@@ -65,17 +87,110 @@ class ClaudeCliDebate {
     
     this.logsDir = path.join(__dirname, '..', 'logs');
     this.semanticEvaluator = new LLMSemanticEvaluator();
-    
+
+    // Initialize Gemini Coordinator for intelligent model selection
+    this.geminiCoordinator = new GeminiCoordinator();
+    this.useIntelligentSelection = process.env.DISABLE_INTELLIGENT_SELECTION !== 'true';
+
+    // Initialize Confidence Scorer for confidence analysis
+    this.confidenceScorer = new ConfidenceScorer();
+
+    // Initialize caching system
+    this.debateCache = new DebateCache({
+      maxAge: parseInt(process.env.CACHE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 hours
+      maxEntries: parseInt(process.env.CACHE_MAX_ENTRIES) || 1000,
+      enablePersistence: process.env.CACHE_PERSISTENCE !== 'false',
+      persistencePath: path.join(__dirname, '..', 'cache', 'debate-cache.json')
+    });
+
+    this.cacheInvalidator = new CacheInvalidator({
+      maxAge: this.debateCache.maxAge,
+      minConfidence: parseFloat(process.env.CACHE_MIN_CONFIDENCE) || 0.7,
+      checkInterval: parseInt(process.env.CACHE_CHECK_INTERVAL) || 5 * 60 * 1000,
+      projectStateTracking: process.env.CACHE_PROJECT_TRACKING !== 'false'
+    });
+
+    // Enable/disable caching based on environment
+    this.cachingEnabled = process.env.DISABLE_CACHE !== 'true';
+
+    // Initialize performance tracking system
+    this.performanceTracker = new PerformanceTracker({
+      dbPath: path.join(__dirname, '..', 'data', 'performance.db')
+    });
+    this.trackingEnabled = process.env.DISABLE_PERFORMANCE_TRACKING !== 'true';
+
+    // Initialize Cross-Verification System
+    this.crossVerifier = new CrossVerifier(this.models);
+    this.verificationEnabled = process.env.ENABLE_VERIFICATION === 'true' ||
+                               process.env.DISABLE_VERIFICATION !== 'true';
+
+    // Initialize Learning System
+    this.learningSystem = new LearningSystem();
+    this.learningEnabled = process.env.DISABLE_LEARNING !== 'true';
+
     // Configurable timeout (default: 60 minutes)
     const DEBATE_TIMEOUT_MINUTES = parseInt(process.env.DEBATE_TIMEOUT_MINUTES) || 60;
     this.timeout = DEBATE_TIMEOUT_MINUTES * 60 * 1000; // Convert to milliseconds
-    
+
     console.log(`⏱️  Claude CLI timeout: ${DEBATE_TIMEOUT_MINUTES} minutes (${this.timeout}ms)`);
+
+    // Store selected models for current debate
+    this.selectedModels = null;
+    this.selectionAnalysis = null;
+
+    // Track model timing and performance during debate
+    this.debateMetrics = {
+      startTime: null,
+      modelTimes: {},
+      failedModels: []
+    };
   }
 
   async initialize() {
     await fs.mkdir(this.logsDir, { recursive: true });
-    
+
+    // Initialize caching system
+    if (this.cachingEnabled) {
+      console.log('💾 Cache system enabled');
+      console.log(`   Max age: ${Math.round(this.debateCache.maxAge / (60 * 60 * 1000))} hours`);
+      console.log(`   Max entries: ${this.debateCache.maxEntries}`);
+      console.log(`   Persistence: ${this.debateCache.enablePersistence ? 'enabled' : 'disabled'}`);
+
+      // Start periodic cleanup
+      this.cacheInvalidator.startPeriodicCleanup(this.debateCache.cache);
+    } else {
+      console.log('💾 Cache system disabled');
+    }
+
+    // Initialize Gemini Coordinator for intelligent model selection
+    if (this.useIntelligentSelection) {
+      await this.geminiCoordinator.initialize();
+    }
+
+    // Initialize performance tracking system
+    if (this.trackingEnabled) {
+      try {
+        await this.performanceTracker.initialize();
+        console.log('📊 Performance tracking enabled');
+      } catch (error) {
+        console.warn('⚠️ Performance tracking initialization failed:', error.message);
+        this.trackingEnabled = false;
+      }
+    } else {
+      console.log('📊 Performance tracking disabled');
+    }
+
+    // Initialize Learning System
+    if (this.learningEnabled) {
+      try {
+        await this.learningSystem.initialize();
+        console.log('🧠 Learning system initialized');
+      } catch (error) {
+        console.warn('⚠️ Learning system initialization failed:', error.message);
+        this.learningEnabled = false;
+      }
+    }
+
     // Verify all wrapper scripts exist
     for (const model of this.models) {
       try {
@@ -87,20 +202,165 @@ class ClaudeCliDebate {
   }
 
   /**
-   * Run multi-model debate using Claude CLI spawning
+   * Parse direct model configuration (e.g., "k1:2,k2,k3:3") into selected models
    */
-  async runDebate(question, projectPath = process.cwd()) {
+  parseDirectModelConfig(modelConfig) {
+    const modelSpecs = this.parseModelConfig(modelConfig);
+    const selectedModels = [];
+
+    for (const spec of modelSpecs) {
+      const modelConfig = this.models.find(m => m.alias === spec.model);
+      if (modelConfig) {
+        const instanceConfigs = this.generateInstanceConfigs(modelConfig, spec.count);
+
+        for (const instanceConfig of instanceConfigs) {
+          selectedModels.push({
+            ...modelConfig,
+            name: spec.count > 1 ?
+              `${modelConfig.name} (Instance ${instanceConfig.instanceId})` :
+              modelConfig.name,
+            instanceId: instanceConfig.instanceId,
+            totalInstances: instanceConfig.totalInstances,
+            instanceConfig
+          });
+        }
+      } else {
+        console.warn(`⚠️ Unknown model alias: ${spec.model}`);
+      }
+    }
+
+    return selectedModels;
+  }
+
+  /**
+   * Run multi-model debate using Claude CLI spawning with intelligent caching
+   * Supports both intelligent selection and direct model configuration
+   */
+  async runDebate(question, projectPath = process.cwd(), modelConfig = null, options = {}) {
     await this.initialize();
+
+    const startTime = Date.now();
 
     // Start progress reporting
     this.progressReporter.startHeartbeat();
     this.progressReporter.setPhase('Initializing debate');
 
-    console.log('🎯 Multi-Model Debate Consensus (Claude CLI Edition)\n');
+    console.log('🎯 Multi-Model Debate Consensus v2.0 (Claude CLI + Intelligent Selection + Caching)\n');
     console.log('📍 Project:', projectPath);
     console.log('❓ Question:', question);
-    console.log('🤖 Models:', this.models.map(m => `${m.alias}=${m.name}`).join(', '));
     console.log('🔧 Tool Access: Full MCP integration enabled');
+
+    // Check cache first if caching is enabled and not bypassed
+    if (this.cachingEnabled && !options.bypassCache && !options.fresh) {
+      this.progressReporter.setPhase('Checking cache');
+      console.log('\n💾 CACHE: Checking for cached result...');
+
+      const cacheOptions = {
+        projectPath,
+        modelConfig,
+        useIntelligentSelection: this.useIntelligentSelection,
+        bypassCache: options.bypassCache,
+        fresh: options.fresh
+      };
+
+      try {
+        const cachedResult = await this.debateCache.getCached(question, cacheOptions);
+
+        if (cachedResult) {
+          const responseTime = Date.now() - startTime;
+          console.log(`✅ Cache HIT! Using cached result from ${cachedResult.cachedAt}`);
+          console.log(`⚡ Response time: ${responseTime}ms (vs ~35s for fresh debate)`);
+          console.log(`💰 Tokens saved: ~${this.debateCache.stats.tokensSaved} (estimated cost: $${this.debateCache.stats.costSaved.toFixed(4)})`);
+
+          this.progressReporter.complete('Used cached result');
+
+          return {
+            ...cachedResult,
+            responseTimeMs: responseTime,
+            cacheStats: this.debateCache.getStats()
+          };
+        }
+
+        console.log('❌ Cache MISS - proceeding with fresh debate');
+      } catch (error) {
+        console.warn('⚠️ Cache check failed:', error.message);
+      }
+    } else if (options.bypassCache || options.fresh) {
+      console.log('\n🔄 Cache BYPASS - fresh debate requested');
+    } else if (!this.cachingEnabled) {
+      console.log('\n🚫 Cache DISABLED - proceeding with fresh debate');
+    }
+
+    // Phase 0: Model Selection (Intelligent, Direct, or All)
+    if (modelConfig) {
+      // Direct model configuration provided (e.g., "k1:2,k2,k3:3")
+      this.progressReporter.setPhase('Parsing direct model configuration');
+      console.log('\n🎯 PHASE 0: Direct Model Configuration\n');
+
+      this.selectedModels = this.parseDirectModelConfig(modelConfig);
+      this.selectionAnalysis = {
+        category: 'Direct Configuration',
+        complexityLevel: 'user-defined',
+        criticalityLevel: 'user-defined',
+        reasoning: `User specified model configuration: ${modelConfig}`,
+        analysisSource: 'direct-user-config'
+      };
+
+      console.log(`📝 Configuration: ${modelConfig}`);
+      console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
+
+      // Count parallel instances
+      const totalInstances = this.selectedModels.length;
+      const uniqueModels = new Set(this.selectedModels.map(m => m.alias)).size;
+      const parallelInstances = totalInstances - uniqueModels;
+
+      if (parallelInstances > 0) {
+        console.log(`🔀 Parallel instances: ${parallelInstances} additional instances for enhanced consensus`);
+        console.log(`⚡ Instance variety: Different seeds and temperatures for diverse perspectives`);
+      }
+
+    } else if (this.useIntelligentSelection) {
+      // Intelligent model selection using Gemini Coordinator
+      this.progressReporter.setPhase('Analyzing question for optimal model selection');
+      console.log('\n🧠 PHASE 0: Intelligent Model Selection\n');
+
+      try {
+        this.selectionAnalysis = await this.geminiCoordinator.analyzeQuestion(question, {
+          projectPath,
+          urgency: 0.5 // Default urgency, could be parameter
+        });
+
+        this.selectedModels = this.getSelectedModelsFromAnalysis(this.selectionAnalysis);
+
+        console.log(`📊 Analysis: ${this.selectionAnalysis.category} (${this.selectionAnalysis.complexityLevel}/${this.selectionAnalysis.criticalityLevel})`);
+        console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
+        console.log(`💰 Cost reduction: ${this.selectionAnalysis.costReduction}%`);
+        console.log(`⚡ Speed improvement: ${this.selectionAnalysis.estimatedSpeedGain}`);
+        console.log(`🤖 Analysis source: ${this.selectionAnalysis.analysisSource}`);
+        console.log(`📝 Reasoning: ${this.selectionAnalysis.reasoning}`);
+
+      } catch (error) {
+        console.warn('⚠️ Intelligent selection failed, using all models:', error.message);
+        this.selectedModels = this.models.map(m => ({
+          ...m,
+          instanceId: 1,
+          totalInstances: 1,
+          instanceConfig: null
+        }));
+        this.selectionAnalysis = null;
+      }
+    } else {
+      // Use all available models (fallback)
+      console.log('\n📋 Using all available models (intelligent selection disabled)');
+      this.selectedModels = this.models.map(m => ({
+        ...m,
+        instanceId: 1,
+        totalInstances: 1,
+        instanceConfig: null
+      }));
+      console.log('🤖 Models:', this.models.map(m => `${m.alias}=${m.name}`).join(', '));
+    }
+
     console.log('\n' + '='.repeat(70) + '\n');
 
     try {
@@ -126,6 +386,51 @@ class ClaudeCliDebate {
         details: `Score: ${best.score.total.toFixed(2)}`
       });
 
+      // NEW: Cross-Verification Round (optional)
+      let verificationResults = null;
+      if (this.verificationEnabled) {
+        this.progressReporter.setPhase('Cross-Verification: Multi-Model Validation');
+
+        try {
+          await this.crossVerifier.initialize();
+          verificationResults = await this.crossVerifier.verifyProposals(
+            proposals,
+            question,
+            projectPath,
+            {
+              category: this.selectionAnalysis?.category,
+              forceVerification: options.forceVerification,
+              skipVerification: options.skipVerification
+            }
+          );
+
+          // Update best proposal with verification score
+          if (verificationResults.enabled && verificationResults.results[best.model]) {
+            const verification = verificationResults.results[best.model];
+            best.verification = verification;
+
+            // Adjust confidence based on verification
+            if (best.score.components) {
+              best.score.components.verification = verification.confidence;
+              best.score.total = (best.score.total * 0.8) + (verification.confidence * 100 * 0.2);
+            }
+          }
+
+          this.progressReporter.progress('Verification completed', {
+            percentage: 55,
+            details: verificationResults.enabled ?
+              `${Object.keys(verificationResults.results).length} proposals verified` :
+              'Verification skipped'
+          });
+        } catch (error) {
+          console.error('⚠️ Cross-verification failed:', error.message);
+          verificationResults = {
+            enabled: false,
+            error: error.message
+          };
+        }
+      }
+
       // Round 2: Improvements
       this.progressReporter.setPhase('Round 2: Collaborative Improvements with Tools');
       console.log('\n🔄 ROUND 2: Collaborative Improvements with Tools\n');
@@ -139,10 +444,53 @@ class ClaudeCliDebate {
       // Round 3: Final synthesis
       this.progressReporter.setPhase('Round 3: Final Synthesis');
       console.log('\n🔧 ROUND 3: Final Synthesis\n');
-      const final = await this.synthesize(best, improvements, question);
+      const final = await this.synthesize(best, improvements, question, verificationResults);
+
+      // Calculate confidence score
+      this.progressReporter.setPhase('Calculating Confidence Score');
+      console.log('\n📊 PHASE 4: Confidence Analysis\n');
+
+      const debateData = {
+        question,
+        proposals,
+        responses: proposals, // For backward compatibility
+        winner: best.model,
+        score: best.score.total,
+        improvements,
+        solution: final,
+        toolsUsed: true,
+        verificationScore: best.evaluation ? best.evaluation.best_response.score / 100 : undefined
+      };
+
+      const confidence = await this.confidenceScorer.calculateConfidence(debateData);
+
+      console.log(`🎯 Confidence Score: ${confidence.score}% (${confidence.level})`);
+      console.log(`📈 Factors: Agreement=${confidence.factors.model_agreement}%, Verification=${confidence.factors.verification_passed}%, History=${confidence.factors.historical_accuracy}%, Consistency=${confidence.factors.response_consistency}%`);
+      console.log(`💡 Recommendation: ${confidence.recommendation}`);
+      console.log(`📋 Analysis: ${confidence.analysis.summary}`);
+
+      // Process debate for learning
+      if (this.learningEnabled) {
+        try {
+          const debateResult = {
+            question,
+            category: this.selectionAnalysis?.category || 'general',
+            participants: this.selectedModels?.map(m => m.alias) || Object.keys(proposals),
+            selectedModels: this.selectedModels?.map(m => m.alias) || [],
+            winner: best.model,
+            scores: proposals,
+            timings: this.debateMetrics.modelTimes,
+            costReduction: this.selectionAnalysis?.costReduction || 0
+          };
+
+          await this.learningSystem.processDebate(debateResult);
+        } catch (error) {
+          console.warn('⚠️ Learning system processing failed:', error.message);
+        }
+      }
 
       // Save log
-      await this.saveLog(question, projectPath, proposals, best, improvements, final);
+      await this.saveLog(question, projectPath, proposals, best, improvements, final, confidence);
 
       // Report completion
       this.progressReporter.complete('Debate completed successfully');
@@ -152,7 +500,12 @@ class ClaudeCliDebate {
         winner: best.model,
         score: best.score.total,
         contributors: Object.keys(improvements),
-        toolsUsed: true
+        toolsUsed: true,
+        parallelInstances: this.selectedModels.filter(m => m.totalInstances > 1).length > 0,
+        selectionMethod: modelConfig ? 'direct' : (this.useIntelligentSelection ? 'intelligent' : 'all'),
+        modelConfiguration: modelConfig || 'auto',
+        confidence: confidence,
+        verification: verificationResults
       };
     } catch (error) {
       this.progressReporter.error(`Debate failed: ${error.message}`, error);
@@ -162,8 +515,9 @@ class ClaudeCliDebate {
 
   /**
    * Call model using Claude CLI with full tool access
+   * Supports parallel instances with different seeds/temperatures
    */
-  async callModel(model, prompt, projectPath = process.cwd()) {
+  async callModel(model, prompt, projectPath = process.cwd(), instanceConfig = null) {
     const maxRetries = 2;
 
     // Update model status to waiting initially
@@ -177,17 +531,26 @@ class ClaudeCliDebate {
         this.progressReporter.updateModelStatus(model.name, 'starting');
 
         const startTime = Date.now();
-        
-        // Create a comprehensive prompt that includes project context
-        const fullPrompt = `You are ${model.name}, an expert in ${model.expertise}.
 
-TASK: ${prompt}
+        // Create a comprehensive prompt that includes project context
+        let fullPrompt = `You are ${model.name}, an expert in ${model.expertise}.`;
+
+        // Add instance-specific context if this is a parallel instance
+        if (instanceConfig) {
+          fullPrompt += `\n\nINSTANCE CONTEXT:
+- Instance ${instanceConfig.instanceId} of ${instanceConfig.totalInstances}
+- Seed: ${instanceConfig.seed}
+- Temperature: ${instanceConfig.temperature}
+- Focus: ${instanceConfig.focus || 'General analysis'}`;
+        }
+
+        fullPrompt += `\n\nTASK: ${prompt}
 
 PROJECT CONTEXT:
 - Working Directory: ${projectPath}
 - You have full access to MCP tools including:
   * Read/Write files
-  * Run bash commands  
+  * Run bash commands
   * Search code with grep/glob
   * Git operations
   * Docker management
@@ -200,14 +563,18 @@ INSTRUCTIONS:
 2. Read relevant files to understand the codebase
 3. Run commands to gather information as needed
 4. Provide a comprehensive solution with code examples
-5. Focus on your area of expertise: ${model.expertise}
+5. Focus on your area of expertise: ${model.expertise}`;
 
-Please provide a detailed analysis and solution.`;
+        if (instanceConfig) {
+          fullPrompt += `\n6. ${instanceConfig.instructions || 'Provide a unique perspective based on your instance configuration'}`;
+        }
+
+        fullPrompt += `\n\nPlease provide a detailed analysis and solution.`;
 
         // Update status to running
         this.progressReporter.updateModelStatus(model.name, 'running');
 
-        const result = await this.spawnClaude(model, fullPrompt, projectPath);
+        const result = await this.spawnClaude(model, fullPrompt, projectPath, instanceConfig);
         const duration = Math.round((Date.now() - startTime) / 1000);
 
         if (!result) {
@@ -227,44 +594,57 @@ Please provide a detailed analysis and solution.`;
           this.progressReporter.updateModelStatus(model.name, 'failed');
           return null;
         }
-        
+
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       }
     }
-    
+
     return null;
   }
 
   /**
    * Spawn Claude CLI process and capture output
+   * Supports instance-specific environment variables for seeds/temperatures
    */
-  async spawnClaude(model, prompt, projectPath) {
+  async spawnClaude(model, prompt, projectPath, instanceConfig = null) {
     return new Promise((resolve, reject) => {
       let output = '';
       let errorOutput = '';
-      
+
+      // Prepare environment variables for instance configuration
+      const env = { ...process.env };
+
+      if (instanceConfig) {
+        // Set instance-specific environment variables that can be used by wrapper scripts
+        env.CLAUDE_INSTANCE_SEED = instanceConfig.seed.toString();
+        env.CLAUDE_INSTANCE_TEMPERATURE = instanceConfig.temperature.toString();
+        env.CLAUDE_INSTANCE_ID = instanceConfig.instanceId.toString();
+        env.CLAUDE_TOTAL_INSTANCES = instanceConfig.totalInstances.toString();
+      }
+
       // Spawn Claude CLI using the wrapper script
       const child = spawn(model.wrapper, ['--print'], {
         cwd: projectPath,
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: this.timeout
+        timeout: this.timeout,
+        env
       });
-      
+
       // Send prompt to stdin
       child.stdin.write(prompt);
       child.stdin.end();
-      
+
       // Capture stdout
       child.stdout.on('data', (data) => {
         output += data.toString();
       });
-      
-      // Capture stderr  
+
+      // Capture stderr
       child.stderr.on('data', (data) => {
         errorOutput += data.toString();
       });
-      
+
       // Handle process completion
       child.on('close', (code) => {
         if (code === 0) {
@@ -273,12 +653,12 @@ Please provide a detailed analysis and solution.`;
           reject(new Error(`Claude CLI exited with code ${code}: ${errorOutput}`));
         }
       });
-      
+
       // Handle process errors
       child.on('error', (error) => {
         reject(new Error(`Failed to spawn Claude CLI: ${error.message}`));
       });
-      
+
       // Handle timeout
       child.on('timeout', () => {
         child.kill();
@@ -289,53 +669,338 @@ Please provide a detailed analysis and solution.`;
   }
 
   /**
-   * Get proposals from each model
+   * Parse model configuration string (e.g., "k1:2,k2,k3:3")
+   * Returns array of model specifications with instance counts
+   */
+  parseModelConfig(config) {
+    if (!config) return [];
+
+    return config.split(',').map(m => {
+      const [model, count = "1"] = m.trim().split(':');
+      return {
+        model: model.trim(),
+        count: parseInt(count) || 1
+      };
+    });
+  }
+
+  /**
+   * Generate instance configurations for parallel execution
+   */
+  generateInstanceConfigs(baseModel, instanceCount) {
+    const configs = [];
+
+    for (let i = 1; i <= instanceCount; i++) {
+      const config = {
+        instanceId: i,
+        totalInstances: instanceCount,
+        seed: i * 1000, // Different seeds for variety
+        temperature: Math.min(0.3 + (i - 1) * 0.15, 0.9), // Increasing temperature for diversity
+      };
+
+      // Add instance-specific focus areas
+      if (instanceCount > 1) {
+        switch (i) {
+          case 1:
+            config.focus = 'Conservative approach';
+            config.instructions = 'Focus on reliability and proven patterns';
+            break;
+          case 2:
+            config.focus = 'Innovative approach';
+            config.instructions = 'Explore creative and novel solutions';
+            break;
+          case 3:
+            config.focus = 'Optimization approach';
+            config.instructions = 'Focus on performance and efficiency';
+            break;
+          default:
+            config.focus = `Alternative approach ${i}`;
+            config.instructions = 'Provide a unique perspective different from other instances';
+        }
+      }
+
+      configs.push(config);
+    }
+
+    return configs;
+  }
+
+  /**
+   * Convert analysis results to selected model configurations
+   * Enhanced to support proper parallel instance configuration
+   */
+  getSelectedModelsFromAnalysis(analysis) {
+    const selectedModels = [];
+
+    for (const modelSpec of analysis.selectedModels) {
+      const [alias, instances] = modelSpec.split(':');
+      const instanceCount = parseInt(instances) || 1;
+
+      const modelConfig = this.models.find(m => m.alias === alias);
+      if (modelConfig) {
+        // Generate instance configurations
+        const instanceConfigs = this.generateInstanceConfigs(modelConfig, instanceCount);
+
+        for (const instanceConfig of instanceConfigs) {
+          selectedModels.push({
+            ...modelConfig,
+            name: instanceCount > 1 ?
+              `${modelConfig.name} (Instance ${instanceConfig.instanceId})` :
+              modelConfig.name,
+            instanceId: instanceConfig.instanceId,
+            totalInstances: instanceConfig.totalInstances,
+            instanceConfig
+          });
+        }
+      }
+    }
+
+    // Ensure minimum 3 models for consensus unless trivial task
+    if (selectedModels.length < 3 && analysis.complexityLevel !== 'trivial') {
+      const missingCount = 3 - selectedModels.length;
+      const availableModels = this.models.filter(m =>
+        !selectedModels.some(sm => sm.alias === m.alias)
+      );
+
+      for (let i = 0; i < Math.min(missingCount, availableModels.length); i++) {
+        selectedModels.push({
+          ...availableModels[i],
+          instanceId: 1,
+          totalInstances: 1,
+          instanceConfig: null
+        });
+      }
+    }
+
+    return selectedModels;
+  }
+
+  /**
+   * Run parallel instances of the same model and synthesize results
+   */
+  async runParallelInstances(baseModel, instanceConfigs, question, projectPath) {
+    console.log(`  🔀 Running ${instanceConfigs.length} parallel instances of ${baseModel.name}...`);
+
+    const instancePromises = instanceConfigs.map(async (instanceConfig, index) => {
+      const instanceModel = {
+        ...baseModel,
+        name: `${baseModel.name} (Instance ${instanceConfig.instanceId})`
+      };
+
+      const prompt = `${question}
+
+Focus on your area of expertise: ${baseModel.expertise}
+
+Use all available tools to:
+1. Understand the project structure
+2. Read relevant files
+3. Analyze the codebase
+4. Provide a complete solution with examples
+
+Your role: ${baseModel.role}
+Your expertise: ${baseModel.expertise}
+Instance focus: ${instanceConfig.focus}`;
+
+      const result = await this.callModel(instanceModel, prompt, projectPath, instanceConfig);
+      return { instanceConfig, result, instanceModel };
+    });
+
+    const results = await Promise.allSettled(instancePromises);
+    const successfulResults = results
+      .filter(r => r.status === 'fulfilled' && r.value.result)
+      .map(r => r.value);
+
+    if (successfulResults.length === 0) {
+      console.log(`  ❌ All instances of ${baseModel.name} failed`);
+      return null;
+    }
+
+    if (successfulResults.length === 1) {
+      console.log(`  ✅ ${baseModel.name}: 1/${instanceConfigs.length} instances succeeded`);
+      return successfulResults[0].result;
+    }
+
+    // Synthesize multiple instance results
+    console.log(`  🔄 Synthesizing ${successfulResults.length}/${instanceConfigs.length} instances of ${baseModel.name}...`);
+    return await this.synthesizeInstanceResults(baseModel, successfulResults, question);
+  }
+
+  /**
+   * Synthesize results from multiple instances of the same model
+   */
+  async synthesizeInstanceResults(baseModel, instanceResults, question) {
+    // If only one result, return it directly
+    if (instanceResults.length === 1) {
+      return instanceResults[0].result;
+    }
+
+    // Create synthesis prompt
+    const instanceSummaries = instanceResults.map((instance, index) => {
+      const config = instance.instanceConfig;
+      return `### Instance ${config.instanceId} (${config.focus}):
+${instance.result.substring(0, 2000)}...`;
+    }).join('\n\n---\n\n');
+
+    const synthesisPrompt = `You are ${baseModel.name}, synthesizing multiple parallel analyses.
+
+ORIGINAL QUESTION: ${question}
+
+MULTIPLE INSTANCE RESULTS:
+${instanceSummaries}
+
+TASK: Create a unified, comprehensive solution that:
+1. Combines the best insights from all instances
+2. Resolves any contradictions between approaches
+3. Provides a coherent, actionable solution
+4. Maintains focus on your expertise: ${baseModel.expertise}
+
+Synthesis Guidelines:
+- Include the most innovative ideas from creative instances
+- Preserve reliability insights from conservative instances
+- Integrate optimization suggestions where applicable
+- Provide clear reasoning for your synthesis decisions
+
+Provide the final synthesized solution:`;
+
+    try {
+      // Use the first instance's model for synthesis (same underlying model)
+      const synthesisResult = await this.callModel(
+        instanceResults[0].instanceModel,
+        synthesisPrompt,
+        process.cwd(),
+        {
+          instanceId: 'synthesis',
+          totalInstances: instanceResults.length,
+          seed: 12345,
+          temperature: 0.5,
+          focus: 'Instance synthesis',
+          instructions: 'Synthesize all instance results into a coherent solution'
+        }
+      );
+
+      if (synthesisResult) {
+        return `# Synthesized Solution from ${instanceResults.length} Parallel Instances
+
+${synthesisResult}
+
+---
+
+## Instance Summary
+This solution was synthesized from ${instanceResults.length} parallel instances of ${baseModel.name}, each with different perspectives:
+${instanceResults.map(r => `- Instance ${r.instanceConfig.instanceId}: ${r.instanceConfig.focus}`).join('\n')}`;
+      }
+    } catch (error) {
+      console.warn(`Synthesis failed for ${baseModel.name}, using best instance result:`, error.message);
+    }
+
+    // Fallback: use the longest/most detailed response
+    const bestInstance = instanceResults.reduce((best, current) =>
+      current.result.length > best.result.length ? current : best
+    );
+
+    return `# Best Result from ${instanceResults.length} Parallel Instances
+
+${bestInstance.result}
+
+---
+
+## Note
+This is the best result from ${instanceResults.length} parallel instances of ${baseModel.name}. Synthesis was not possible, so the most comprehensive instance result was selected.`;
+  }
+
+  /**
+   * Get proposals from selected models with parallel instance support
    */
   async getProposals(question, projectPath) {
     const proposals = {};
     const startTime = Date.now();
-    
-    console.log(`Requesting proposals from ${this.models.length} models with tool access...`);
-    
-    // Run models in parallel for better performance
-    const modelPromises = this.models.map(async (model) => {
-      const modelStart = Date.now();
-      
-      const prompt = `${question}
 
-Focus on your area of expertise: ${model.expertise}
+    // Use selected models instead of all models
+    const modelsToUse = this.selectedModels || this.models;
+
+    // Group models by base model (same alias) to handle parallel instances
+    const modelGroups = {};
+    for (const model of modelsToUse) {
+      if (!modelGroups[model.alias]) {
+        modelGroups[model.alias] = {
+          baseModel: {
+            alias: model.alias,
+            name: model.name.replace(/ \(Instance \d+\)$/, ''), // Remove instance suffix
+            role: model.role,
+            expertise: model.expertise,
+            wrapper: model.wrapper
+          },
+          instances: []
+        };
+      }
+
+      modelGroups[model.alias].instances.push(model);
+    }
+
+    const totalInstances = Object.values(modelGroups)
+      .reduce((sum, group) => sum + group.instances.length, 0);
+
+    console.log(`Requesting proposals from ${Object.keys(modelGroups).length} base models (${totalInstances} total instances) with tool access...`);
+
+    // Run model groups in parallel
+    const modelGroupPromises = Object.entries(modelGroups).map(async ([alias, group]) => {
+      const { baseModel, instances } = group;
+      const modelStart = Date.now();
+
+      let result;
+      if (instances.length === 1 && !instances[0].instanceConfig) {
+        // Single instance, call normally
+        const prompt = `${question}
+
+Focus on your area of expertise: ${baseModel.expertise}
 
 Use all available tools to:
 1. Understand the project structure
-2. Read relevant files 
+2. Read relevant files
 3. Analyze the codebase
 4. Provide a complete solution with examples
 
-Your role: ${model.role}
-Your expertise: ${model.expertise}`;
-      
-      const result = await this.callModel(model, prompt, projectPath);
-      const modelTime = Math.round((Date.now() - modelStart) / 1000);
-      
-      return { model, result, modelTime };
-    });
-    
-    const results = await Promise.allSettled(modelPromises);
-    
-    // Process results
-    results.forEach((result, index) => {
-      const model = this.models[index];
-      if (result.status === 'fulfilled' && result.value.result) {
-        proposals[model.name] = result.value.result;
-        console.log(`  ✅ ${model.name} completed (${result.value.modelTime}s, ${result.value.result.length} chars)`);
+Your role: ${baseModel.role}
+Your expertise: ${baseModel.expertise}`;
+
+        result = await this.callModel(instances[0], prompt, projectPath);
       } else {
-        console.log(`  ❌ ${model.name} failed: ${result.reason?.message || 'Unknown error'}`);
+        // Multiple instances or configured instances, run in parallel
+        const instanceConfigs = instances.map(inst =>
+          inst.instanceConfig || {
+            instanceId: 1,
+            totalInstances: 1,
+            seed: 1000,
+            temperature: 0.5,
+            focus: 'General analysis'
+          }
+        );
+
+        result = await this.runParallelInstances(baseModel, instanceConfigs, question, projectPath);
+      }
+
+      const modelTime = Math.round((Date.now() - modelStart) / 1000);
+      return { baseModel, result, modelTime, instanceCount: instances.length };
+    });
+
+    const results = await Promise.allSettled(modelGroupPromises);
+
+    // Process results
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value.result) {
+        const { baseModel, result: modelResult, modelTime, instanceCount } = result.value;
+        proposals[baseModel.name] = modelResult;
+        const instanceInfo = instanceCount > 1 ? ` (${instanceCount} instances)` : '';
+        console.log(`  ✅ ${baseModel.name}${instanceInfo} completed (${modelTime}s, ${modelResult.length} chars)`);
+      } else {
+        const error = result.reason?.value?.baseModel?.name || 'Unknown model';
+        console.log(`  ❌ ${error} failed: ${result.reason?.message || 'Unknown error'}`);
       }
     });
-    
+
     const totalTime = Math.round((Date.now() - startTime) / 1000);
-    console.log(`\n📊 Proposal round completed: ${Object.keys(proposals).length}/${this.models.length} models responded (${totalTime}s total)`);
-    
+    console.log(`\n📊 Proposal round completed: ${Object.keys(proposals).length}/${Object.keys(modelGroups).length} model groups responded (${totalTime}s total)`);
+
     return proposals;
   }
 
@@ -378,8 +1043,11 @@ Your expertise: ${model.expertise}`;
    */
   async getImprovements(best, question, projectPath) {
     const improvements = {};
-    
-    const improvementPromises = this.models
+
+    // Use selected models instead of all models
+    const modelsToUse = this.selectedModels || this.models;
+
+    const improvementPromises = modelsToUse
       .filter(model => model.name !== best.model)
       .map(async (model) => {
         console.log(`  ${model.name} reviewing with tools...`);
@@ -419,9 +1087,9 @@ Provide specific improvements and enhancements.`;
   }
 
   /**
-   * Synthesize final solution
+   * Synthesize final solution including verification results
    */
-  async synthesize(best, improvements, question) {
+  async synthesize(best, improvements, question, verificationResults = null) {
     let synthesis = `# Consensus Solution (LLM-Evaluated)\n\n`;
     synthesis += `Base: ${best.model} (score: ${best.score.total})\n`;
     synthesis += `Contributors: ${Object.keys(improvements).join(', ')}\n`;
@@ -466,7 +1134,7 @@ Provide specific improvements and enhancements.`;
   /**
    * Save debate log
    */
-  async saveLog(question, projectPath, proposals, best, improvements, final) {
+  async saveLog(question, projectPath, proposals, best, improvements, final, confidence = null) {
     const logData = {
       timestamp: Date.now(),
       type: 'claude-cli-debate',
@@ -477,13 +1145,24 @@ Provide specific improvements and enhancements.`;
       score: best.score,
       improvements,
       solution: final,
-      toolsEnabled: true
+      toolsEnabled: true,
+      confidence: confidence || null,
+      modelSelection: {
+        method: this.selectionAnalysis ? 'intelligent' : 'all',
+        analysis: this.selectionAnalysis,
+        selectedModels: this.selectedModels ? this.selectedModels.map(m => ({
+          alias: m.alias,
+          name: m.name,
+          instanceId: m.instanceId,
+          totalInstances: m.totalInstances
+        })) : null
+      }
     };
-    
+
     const logFile = path.join(this.logsDir, `claude_cli_debate_${Date.now()}.json`);
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
     console.log(`\n💾 Log saved: ${logFile}`);
   }
 }
 
-module.exports = { ClaudeCliDebate };
+export { ClaudeCliDebate };
