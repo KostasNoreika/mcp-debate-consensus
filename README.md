@@ -10,7 +10,7 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 
 - **🧠 True Multi-Model Intelligence**: Not just API calls, but actual Claude CLI instances with complete MCP tool access
 - **🔧 Full Development Capabilities**: Each model can read files, execute commands, search codebases, run tests, and more
-- **🎓 Specialized Expertise**: Each model focuses on their strengths (architecture, testing, algorithms, integration)
+- **🎓 Specialized Expertise**: Each model focuses on their strengths (architecture, testing, algorithms, integration, fast reasoning)
 - **🤝 Consensus Building**: Structured debate process ensures thorough analysis and balanced solutions
 - **🔍 Semantic Scoring**: Advanced algorithm evaluates proposals on relevance, novelty, quality, and coherence
 
@@ -52,11 +52,13 @@ graph TD
     C --> D2[k2: GPT-5<br/>Testing Expert]
     C --> D3[k3: Qwen 3 Max<br/>Algorithm Expert]
     C --> D4[k4: Gemini 2.5 Pro<br/>Integration Expert]
-    
+    C --> D5[k5: Grok 4 Fast<br/>Fast Reasoning Expert]
+
     D1 --> E[MCP Tools Access]
     D2 --> E
     D3 --> E
     D4 --> E
+    D5 --> E
     
     E --> F[File Operations]
     E --> G[Bash Commands]

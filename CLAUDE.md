@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 🛑 CRITICAL RULES - NEVER VIOLATE 🛑
 
-1. **NEVER CHANGE MODEL CONFIGURATIONS**: The k1-k4 model aliases are FIXED and must NEVER be changed to different models unless the user explicitly requests a specific model change.
-   
-   **NOTE**: The k1-k4 aliases are NOT OS-level aliases. They are handled internally by the proxy server (`claude-router/proxy.js`). No alias setup is required - just start the proxy server.
+1. **NEVER CHANGE MODEL CONFIGURATIONS**: The k1-k5 model aliases are FIXED and must NEVER be changed to different models unless the user explicitly requests a specific model change.
+
+   **NOTE**: The k1-k5 aliases are NOT OS-level aliases. They are handled internally by the proxy server (`claude-router/proxy.js`). No alias setup is required - just start the proxy server.
    - k1 MUST remain: `anthropic/claude-opus-4.1`
    - k2 MUST remain: `openai/gpt-5`
    - k3 MUST remain: `qwen/qwen3-max`
    - k4 MUST remain: `google/gemini-2.5-pro`
+   - k5 MUST remain: `x-ai/grok-4-fast:free`
 
 2. **DO NOT suggest model alternatives or "improvements"** - these models were specifically chosen by the user.
 
@@ -34,7 +35,7 @@ npm run test:mcp   # Test MCP client directly (test-mcp-client.js)
 npm run test:models # Test consensus mechanism (./test-consensus.sh)
 
 # Test scripts
-./test-router.sh           # Test k1-k4 models with proxy
+./test-k-models.sh         # Test k1-k5 models with proxy
 ```
 
 ### Configuration
@@ -62,6 +63,7 @@ k1 /init                  # Claude Opus 4.1 with full MCP
 k2 "Find bugs"           # GPT-5 with file access
 k3 "Optimize code"       # Qwen 3 Max with tools
 k4 "Review project"      # Gemini 2.5 Pro with everything
+k5 "Fast analysis"       # Grok 4 Fast with rapid reasoning
 ```
 
 ## Architecture
@@ -75,23 +77,24 @@ This is an MCP (Model Context Protocol) server that orchestrates multi-model deb
 - Loads ES modules for MCP SDK dynamically
 - Exposes `debate` and `debate-history` tools via MCP protocol
 
-**Debate Orchestrator (`src/simple-debate.js`)**
+**Debate Orchestrator (`src/claude-cli-debate.js`)**
 - Manages multi-model consensus through two-round debate process
-- Uses k1-k4 aliases to invoke different models via Claude CLI
+- Uses k1-k5 aliases to invoke different models via Claude CLI
 - Models have full MCP tool access (file reading, bash commands, etc.)
 - Implements scoring and synthesis logic for consensus building
 
 **Model Configuration (FIXED - DO NOT CHANGE)**
 - **k1**: Claude Opus 4.1 (`anthropic/claude-opus-4.1`) - Architecture and system design
-- **k2**: GPT-5 (`openai/gpt-5`) - Testing strategies and debugging  
+- **k2**: GPT-5 (`openai/gpt-5`) - Testing strategies and debugging
 - **k3**: Qwen 3 Max (`qwen/qwen3-max`) - Algorithm optimization
 - **k4**: Gemini 2.5 Pro (`google/gemini-2.5-pro`) - Integration and completeness
+- **k5**: Grok 4 Fast (`x-ai/grok-4-fast:free`) - Fast reasoning and coding
 - **c1**: Existing Claude CLI with Opus - Final synthesis arbitrator
 
 ### Process Flow
 
 1. **Round 1: Independent Analysis**
-   - Each model (k1-k4) analyzes the question independently
+   - Each model (k1-k5) analyzes the question independently
    - Models can use MCP tools to read files, check tests, examine configs
    - Each provides a complete solution proposal
 

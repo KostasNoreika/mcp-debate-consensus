@@ -22,7 +22,8 @@ const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',
   'k2': 'openai/gpt-5',
   'k3': 'qwen/qwen3-max',
-  'k4': 'google/gemini-2.5-pro'
+  'k4': 'google/gemini-2.5-pro',
+  'k5': 'x-ai/grok-4-fast:free'  // Grok 4 Fast (free tier on OpenRouter)
 };
 
 // Conservative token limits for each model (for cost-effectiveness)
@@ -30,7 +31,8 @@ const maxTokensMap = {
   'k1': 16000,   // Claude Opus 4.1 (max: 32k)
   'k2': 32000,   // GPT-5 (max: 128k!)
   'k3': 16000,   // Qwen 3 Max (max: 32k)
-  'k4': 32000    // Gemini 2.5 Pro (max: 66k)
+  'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
+  'k5': 32000    // Grok 4 Fast (max: 2M context, but limiting for cost)
 };
 
 // Claude API to OpenRouter translation
@@ -58,11 +60,13 @@ app.post('/v1/messages', async (req, res) => {
     else if (apiKey.endsWith('-k2')) modelOverride = 'k2';
     else if (apiKey.endsWith('-k3')) modelOverride = 'k3';
     else if (apiKey.endsWith('-k4')) modelOverride = 'k4';
+    else if (apiKey.endsWith('-k5')) modelOverride = 'k5';
     // Check exact API keys
     else if (apiKey === 'proxy-key-k1') modelOverride = 'k1';
     else if (apiKey === 'proxy-key-k2') modelOverride = 'k2';
     else if (apiKey === 'proxy-key-k3') modelOverride = 'k3';
     else if (apiKey === 'proxy-key-k4') modelOverride = 'k4';
+    else if (apiKey === 'proxy-key-k5') modelOverride = 'k5';
     // Fall back to environment variable
     else if (process.env.MODEL_OVERRIDE) {
       modelOverride = process.env.MODEL_OVERRIDE;
@@ -193,6 +197,6 @@ app.post('/health/test', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Claude Router Proxy started on http://localhost:${PORT}`);
-  console.log(`📡 Models available: k1, k2, k3, k4`);
+  console.log(`📡 Models available: k1, k2, k3, k4, k5`);
   console.log(`🔧 Use MODEL_OVERRIDE env var to switch models`);
 });

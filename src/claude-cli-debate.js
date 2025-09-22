@@ -47,12 +47,19 @@ class ClaudeCliDebate {
         expertise: 'Algorithm optimization and data structures',
         wrapper: path.join(__dirname, '..', 'k3-wrapper.sh')
       },
-      { 
-        alias: 'k4', 
-        name: 'Gemini 2.5 Pro', 
-        role: 'Integration', 
+      {
+        alias: 'k4',
+        name: 'Gemini 2.5 Pro',
+        role: 'Integration',
         expertise: 'System integration and completeness verification',
         wrapper: path.join(__dirname, '..', 'k4-wrapper.sh')
+      },
+      {
+        alias: 'k5',
+        name: 'Grok 4 Fast',
+        role: 'Fast Reasoning',
+        expertise: 'Rapid reasoning, coding optimization, and cost-efficient analysis',
+        wrapper: path.join(__dirname, '..', 'k5-wrapper.sh')
       }
     ];
     
