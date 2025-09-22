@@ -60,7 +60,7 @@ class DebateConsensusMCP {
             tools: [
                 {
                     name: 'debate',
-                    description: 'Run a multi-LLM consensus debate using k1-k4 models (waits for completion)',
+                    description: 'AUTOMATICALLY use when: complex technical questions, architecture design, debugging stubborn issues, optimization advice, technology choices, security analysis, or "debate this". Runs 5 expert AI models (Claude Opus, GPT-5, Qwen, Gemini, Grok) in structured debate with file/command access. Best for: decisions needing multiple perspectives, hard bugs resisting single-model solutions, critical technical choices.',
                     inputSchema: {
                         type: 'object',
                         properties: {
