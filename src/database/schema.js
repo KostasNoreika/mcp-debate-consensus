@@ -136,6 +136,42 @@ export class DatabaseSchema {
   }
 
   /**
+   * Async wrapper for database run method
+   */
+  runAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      this.db.run(sql, params, function(err) {
+        if (err) reject(err);
+        else resolve(this);
+      });
+    });
+  }
+
+  /**
+   * Async wrapper for database get method
+   */
+  getAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      this.db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  }
+
+  /**
+   * Async wrapper for database all method
+   */
+  allAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      this.db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  /**
    * Initialize database and create tables
    */
   async initialize() {
@@ -145,16 +181,16 @@ export class DatabaseSchema {
       await import('fs/promises').then(fs => fs.mkdir(dataDir, { recursive: true }));
 
       // Open database
-      this.db = new Database(this.dbPath);
+      this.db = new sqlite3.Database(this.dbPath);
 
       // Enable foreign keys
-      this.db.pragma('foreign_keys = ON');
+      await this.runAsync('PRAGMA foreign_keys = ON');
 
       // Create tables
-      this.createTables();
+      await this.createTables();
 
       // Initialize with categories
-      this.initializeCategories();
+      await this.initializeCategories();
 
       console.log(`📊 Performance tracking database initialized: ${this.dbPath}`);
       return true;
@@ -167,9 +203,9 @@ export class DatabaseSchema {
   /**
    * Create all required tables
    */
-  createTables() {
+  async createTables() {
     // Debates table - stores main debate information
-    this.db.exec(`
+    await this.runAsync(`
       CREATE TABLE IF NOT EXISTS debates (
         id TEXT PRIMARY KEY,
         timestamp INTEGER NOT NULL,
@@ -182,12 +218,12 @@ export class DatabaseSchema {
         user_feedback INTEGER CHECK(user_feedback BETWEEN 1 AND 5),
         project_path TEXT,
         total_time_seconds INTEGER,
-        created_at INTEGER DEFAULT (unixepoch())
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
     `);
 
     // Model performance table - stores individual model performance per debate
-    this.db.exec(`
+    await this.runAsync(`
       CREATE TABLE IF NOT EXISTS model_performance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         debate_id TEXT NOT NULL,
@@ -200,13 +236,13 @@ export class DatabaseSchema {
         error_message TEXT,
         proposal_length INTEGER,
         improvements_provided BOOLEAN DEFAULT FALSE,
-        created_at INTEGER DEFAULT (unixepoch()),
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
         FOREIGN KEY(debate_id) REFERENCES debates(id) ON DELETE CASCADE
       )
     `);
 
     // Category profiles table - aggregated statistics per model per category
-    this.db.exec(`
+    await this.runAsync(`
       CREATE TABLE IF NOT EXISTS category_profiles (
         category TEXT NOT NULL,
         model TEXT NOT NULL,
@@ -217,24 +253,24 @@ export class DatabaseSchema {
         total_debates INTEGER DEFAULT 0,
         total_wins INTEGER DEFAULT 0,
         total_errors INTEGER DEFAULT 0,
-        last_updated INTEGER DEFAULT (unixepoch()),
+        last_updated INTEGER DEFAULT (strftime('%s', 'now')),
         PRIMARY KEY(category, model)
       )
     `);
 
     // Categories table - master list of all categories
-    this.db.exec(`
+    await this.runAsync(`
       CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
         domain TEXT,
-        created_at INTEGER DEFAULT (unixepoch())
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
     `);
 
     // Performance trends table - time-based performance tracking
-    this.db.exec(`
+    await this.runAsync(`
       CREATE TABLE IF NOT EXISTS performance_trends (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         model TEXT NOT NULL,
@@ -245,18 +281,18 @@ export class DatabaseSchema {
         win_rate REAL,
         avg_cost REAL,
         avg_time_seconds REAL,
-        created_at INTEGER DEFAULT (unixepoch())
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
     `);
 
     // Create indexes for better query performance
-    this.createIndexes();
+    await this.createIndexes();
   }
 
   /**
    * Create database indexes for optimal query performance
    */
-  createIndexes() {
+  async createIndexes() {
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_debates_timestamp ON debates(timestamp)',
       'CREATE INDEX IF NOT EXISTS idx_debates_category ON debates(category)',
@@ -269,24 +305,19 @@ export class DatabaseSchema {
       'CREATE INDEX IF NOT EXISTS idx_performance_trends_category_date ON performance_trends(category, date)'
     ];
 
-    indexes.forEach(sql => {
+    for (const sql of indexes) {
       try {
-        this.db.exec(sql);
+        await this.runAsync(sql);
       } catch (error) {
         console.warn(`Warning: Could not create index: ${error.message}`);
       }
-    });
+    }
   }
 
   /**
    * Initialize categories table with predefined categories
    */
-  initializeCategories() {
-    const stmt = this.db.prepare(`
-      INSERT OR IGNORE INTO categories (id, name, description, domain)
-      VALUES (?, ?, ?, ?)
-    `);
-
+  async initializeCategories() {
     // Group categories by domain
     const domains = {
       'technical': Object.entries(PERFORMANCE_CATEGORIES).slice(0, 15),
@@ -301,11 +332,19 @@ export class DatabaseSchema {
       'analysis': Object.entries(PERFORMANCE_CATEGORIES).slice(80)
     };
 
-    Object.entries(domains).forEach(([domain, categories]) => {
-      categories.forEach(([id, name]) => {
-        stmt.run(id, name, `${name} tasks and challenges`, domain);
-      });
-    });
+    // Insert categories using async operations
+    for (const [domain, categories] of Object.entries(domains)) {
+      for (const [id, name] of categories) {
+        try {
+          await this.runAsync(
+            'INSERT OR IGNORE INTO categories (id, name, description, domain) VALUES (?, ?, ?, ?)',
+            [id, name, `${name} tasks and challenges`, domain]
+          );
+        } catch (error) {
+          console.warn(`Warning: Could not insert category ${id}:`, error.message);
+        }
+      }
+    }
   }
 
   /**
@@ -331,18 +370,23 @@ export class DatabaseSchema {
   /**
    * Get database statistics
    */
-  getStats() {
+  async getStats() {
     if (!this.db) return null;
 
     try {
-      const stats = {
-        totalDebates: this.db.prepare('SELECT COUNT(*) as count FROM debates').get().count,
-        totalModels: this.db.prepare('SELECT COUNT(DISTINCT model) as count FROM model_performance').get().count,
-        totalCategories: this.db.prepare('SELECT COUNT(*) as count FROM categories').get().count,
-        dbSize: this.db.prepare('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()').get().size
-      };
+      const [totalDebates, totalModels, totalCategories, dbSize] = await Promise.all([
+        this.getAsync('SELECT COUNT(*) as count FROM debates').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(DISTINCT model) as count FROM model_performance').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(*) as count FROM categories').then(row => row?.count || 0),
+        this.getAsync('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()').then(row => row?.size || 0)
+      ]);
 
-      return stats;
+      return {
+        totalDebates,
+        totalModels,
+        totalCategories,
+        dbSize
+      };
     } catch (error) {
       console.error('Error getting database stats:', error);
       return null;

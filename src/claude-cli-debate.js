@@ -1168,7 +1168,63 @@ Provide specific improvements and enhancements.`;
     synthesis += `Base: ${best.model} (score: ${best.score.total})\n`;
     synthesis += `Contributors: ${Object.keys(improvements).join(', ')}\n`;
     synthesis += `Evaluation Method: LLM Semantic Understanding\n\n`;
-    
+
+    // Include verification results if available
+    if (verificationResults && verificationResults.enabled) {
+      synthesis += `## Cross-Verification Results\n\n`;
+
+      const verificationCount = Object.keys(verificationResults.results).length;
+      synthesis += `**Verification Status:** ${verificationResults.enabled ? 'Enabled' : 'Disabled'}\n`;
+      synthesis += `**Proposals Verified:** ${verificationCount}\n`;
+
+      if (verificationResults.securityVerified !== undefined) {
+        const securityStatus = verificationResults.securityVerified ? '✅ Passed' : '❌ Issues Found';
+        synthesis += `**Security Verification:** ${securityStatus}\n`;
+      }
+
+      if (verificationResults.overallConfidence !== undefined) {
+        const confidencePercent = Math.round(verificationResults.overallConfidence * 100);
+        synthesis += `**Overall Confidence:** ${confidencePercent}%\n`;
+      }
+
+      // Display verification details for each model
+      if (verificationResults.results && Object.keys(verificationResults.results).length > 0) {
+        synthesis += `\n### Model-by-Model Verification:\n\n`;
+
+        for (const [model, verification] of Object.entries(verificationResults.results)) {
+          const confidencePercent = Math.round((verification.confidence || 0) * 100);
+          synthesis += `**${model}:** ${confidencePercent}% confidence`;
+
+          if (verification.factCheck) {
+            const accuracyPercent = Math.round((verification.factCheck.accuracy || 0) * 100);
+            synthesis += ` | Accuracy: ${accuracyPercent}%`;
+          }
+
+          if (verification.adversarialTest) {
+            const challengesPassed = verification.adversarialTest.challengesPassed || 0;
+            const totalChallenges = verification.adversarialTest.totalChallenges || 0;
+            synthesis += ` | Challenges: ${challengesPassed}/${totalChallenges}`;
+          }
+
+          synthesis += `\n`;
+        }
+      }
+
+      // Display key warnings if any
+      if (verificationResults.warnings && verificationResults.warnings.length > 0) {
+        synthesis += `\n### Key Verification Warnings:\n\n`;
+        verificationResults.warnings.slice(0, 5).forEach(warning => {
+          synthesis += `⚠️ ${warning}\n`;
+        });
+
+        if (verificationResults.warnings.length > 5) {
+          synthesis += `\n... and ${verificationResults.warnings.length - 5} more warnings\n`;
+        }
+      }
+
+      synthesis += `\n`;
+    }
+
     // Include evaluation insights if available
     if (best.evaluation && best.evaluation.synthesis_suggestions) {
       synthesis += `## Synthesis Strategy\n\n`;
@@ -1177,16 +1233,16 @@ Provide specific improvements and enhancements.`;
       });
       synthesis += '\n';
     }
-    
+
     synthesis += `## Core Solution\n\n${best.proposal}\n\n`;
-    
+
     if (Object.keys(improvements).length > 0) {
       synthesis += `## Enhancements from Other Models\n\n`;
       for (const [model, improvement] of Object.entries(improvements)) {
         synthesis += `### ${model}:\n${improvement.substring(0, 2000)}...\n\n`;
       }
     }
-    
+
     // Add evaluation details
     if (best.evaluation && best.evaluation.evaluations) {
       synthesis += `## Evaluation Details\n\n`;
@@ -1201,7 +1257,7 @@ Provide specific improvements and enhancements.`;
         synthesis += '\n';
       });
     }
-    
+
     return synthesis;
   }
 

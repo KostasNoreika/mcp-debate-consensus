@@ -44,13 +44,13 @@ export class PerformanceTracker {
 
     try {
       await this.schema.initialize();
-      this.queries = new DatabaseQueries(this.schema.getDatabase());
+      this.queries = new DatabaseQueries(this.schema);
       this.initialized = true;
 
       console.log('📊 Performance tracker initialized successfully');
 
       // Log current database stats
-      const stats = this.schema.getStats();
+      const stats = await this.schema.getStats();
       if (stats) {
         console.log(`   - ${stats.totalDebates} debates tracked`);
         console.log(`   - ${stats.totalModels} models analyzed`);
@@ -364,14 +364,14 @@ export class PerformanceTracker {
       }
 
       // Get best models for this category
-      const categoryPerformance = this.queries.getBestModelsForCategory(category, 10);
+      const categoryPerformance = await this.queries.getBestModelsForCategory(category, 10);
 
       // Get recent overall performance
-      const recentPerformance = this.queries.getRecentPerformance(30);
+      const recentPerformance = await this.queries.getRecentPerformance(30);
 
       // Get category statistics
-      const categoryStats = this.queries.getCategoryStatistics()
-        .find(stat => stat.category === category);
+      const allCategoryStats = await this.queries.getCategoryStatistics();
+      const categoryStats = allCategoryStats.find(stat => stat.category === category);
 
       // Build recommendations
       const recommendations = {
@@ -623,11 +623,11 @@ export class PerformanceTracker {
     try {
       const dashboardData = {
         overview: await this.getOverviewStats(),
-        categoryBreakdown: this.queries.getCategoryStatistics(),
+        categoryBreakdown: await this.queries.getCategoryStatistics(),
         modelComparison: await this.getModelComparisonData(options.models),
         recentTrends: await this.getRecentTrends(options.days || 30),
         performanceInsights: await this.getPerformanceInsights(),
-        healthMetrics: this.queries.getHealthMetrics()
+        healthMetrics: await this.queries.getHealthMetrics()
       };
 
       return dashboardData;
@@ -642,8 +642,8 @@ export class PerformanceTracker {
    * @returns {Object} Overview stats
    */
   async getOverviewStats() {
-    const stats = this.schema.getStats();
-    const recentPerformance = this.queries.getRecentPerformance(7);
+    const stats = await this.schema.getStats();
+    const recentPerformance = await this.queries.getRecentPerformance(7);
 
     const totalCost = recentPerformance.reduce((sum, perf) => sum + (perf.avg_cost || 0), 0);
     const avgScore = recentPerformance.length > 0 ?
@@ -665,11 +665,11 @@ export class PerformanceTracker {
   async getModelComparisonData(models = null) {
     if (!models) {
       // Get all unique models from recent performance
-      const recentPerf = this.queries.getRecentPerformance(90);
+      const recentPerf = await this.queries.getRecentPerformance(90);
       models = [...new Set(recentPerf.map(p => p.model))];
     }
 
-    return this.queries.getModelComparison(models);
+    return await this.queries.getModelComparison(models);
   }
 
   /**
@@ -678,7 +678,7 @@ export class PerformanceTracker {
    * @returns {Object} Trend data
    */
   async getRecentTrends(days = 30) {
-    const recentPerf = this.queries.getRecentPerformance(days);
+    const recentPerf = await this.queries.getRecentPerformance(days);
 
     // Group by model for trend analysis
     const modelTrends = {};
@@ -712,8 +712,8 @@ export class PerformanceTracker {
    */
   async getPerformanceInsights() {
     const insights = [];
-    const recentPerf = this.queries.getRecentPerformance(30);
-    const categoryStats = this.queries.getCategoryStatistics();
+    const recentPerf = await this.queries.getRecentPerformance(30);
+    const categoryStats = await this.queries.getCategoryStatistics();
 
     // Identify top performing models
     const topModels = recentPerf
@@ -771,22 +771,23 @@ export class PerformanceTracker {
       await this.initialize();
     }
 
+    const stats = await this.schema.getStats();
     const exportData = {
       metadata: {
         exportDate: new Date().toISOString(),
-        totalDebates: this.schema.getStats()?.totalDebates || 0,
+        totalDebates: stats?.totalDebates || 0,
         categories: Object.keys(PERFORMANCE_CATEGORIES).length
       },
       categories: PERFORMANCE_CATEGORIES,
-      categoryStats: this.queries.getCategoryStatistics(),
-      recentPerformance: this.queries.getRecentPerformance(options.days || 90),
-      healthMetrics: this.queries.getHealthMetrics()
+      categoryStats: await this.queries.getCategoryStatistics(),
+      recentPerformance: await this.queries.getRecentPerformance(options.days || 90),
+      healthMetrics: await this.queries.getHealthMetrics()
     };
 
     if (options.includeDetailedHistory) {
       exportData.detailedHistory = {};
       for (const category of Object.keys(PERFORMANCE_CATEGORIES)) {
-        exportData.detailedHistory[category] = this.queries.getDebateHistory(category, 100);
+        exportData.detailedHistory[category] = await this.queries.getDebateHistory(category, 100);
       }
     }
 

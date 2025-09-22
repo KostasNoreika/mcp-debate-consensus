@@ -8,86 +8,102 @@
  * Provides optimized queries for performance tracking and analysis
  */
 export class DatabaseQueries {
-  constructor(db) {
-    this.db = db;
-    this.preparedStatements = {};
+  constructor(schema) {
+    this.schema = schema;
+    this.db = schema.getDatabase();
     this.initializePreparedStatements();
   }
 
   /**
+   * Async wrapper for database run method
+   */
+  runAsync(sql, params = []) {
+    return this.schema.runAsync(sql, params);
+  }
+
+  /**
+   * Async wrapper for database get method
+   */
+  getAsync(sql, params = []) {
+    return this.schema.getAsync(sql, params);
+  }
+
+  /**
+   * Async wrapper for database all method
+   */
+  allAsync(sql, params = []) {
+    return this.schema.allAsync(sql, params);
+  }
+
+  /**
    * Initialize prepared statements for better performance
+   * Note: Using direct SQL queries since sqlite3 doesn't have sync prepare like better-sqlite3
    */
   initializePreparedStatements() {
-    // Insert operations
-    this.preparedStatements.insertDebate = this.db.prepare(`
-      INSERT INTO debates (id, timestamp, category, question, complexity, models_used, winner, consensus_score, user_feedback, project_path, total_time_seconds)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    this.preparedStatements.insertModelPerformance = this.db.prepare(`
-      INSERT INTO model_performance (debate_id, model, score, response_time_seconds, tokens_used, cost, error_occurred, error_message, proposal_length, improvements_provided)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    this.preparedStatements.upsertCategoryProfile = this.db.prepare(`
-      INSERT INTO category_profiles (category, model, win_rate, avg_score, avg_time_seconds, avg_cost, total_debates, total_wins, total_errors, last_updated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(category, model) DO UPDATE SET
-        win_rate = excluded.win_rate,
-        avg_score = excluded.avg_score,
-        avg_time_seconds = excluded.avg_time_seconds,
-        avg_cost = excluded.avg_cost,
-        total_debates = excluded.total_debates,
-        total_wins = excluded.total_wins,
-        total_errors = excluded.total_errors,
-        last_updated = excluded.last_updated
-    `);
-
-    this.preparedStatements.insertPerformanceTrend = this.db.prepare(`
-      INSERT OR REPLACE INTO performance_trends (model, category, date, avg_score, debates_count, win_rate, avg_cost, avg_time_seconds)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    // Select operations
-    this.preparedStatements.getModelPerformanceByCategory = this.db.prepare(`
-      SELECT * FROM category_profiles
-      WHERE category = ?
-      ORDER BY win_rate DESC, avg_score DESC
-    `);
-
-    this.preparedStatements.getModelOverallPerformance = this.db.prepare(`
-      SELECT
-        model,
-        AVG(win_rate) as overall_win_rate,
-        AVG(avg_score) as overall_avg_score,
-        AVG(avg_time_seconds) as overall_avg_time,
-        SUM(total_debates) as total_debates,
-        SUM(total_wins) as total_wins,
-        SUM(total_errors) as total_errors
-      FROM category_profiles
-      WHERE model = ?
-      GROUP BY model
-    `);
-
-    this.preparedStatements.getDebateHistory = this.db.prepare(`
-      SELECT * FROM debates
-      WHERE category = ?
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `);
-
-    this.preparedStatements.getRecentPerformance = this.db.prepare(`
-      SELECT
-        mp.model,
-        AVG(mp.score) as avg_score,
-        COUNT(*) as debate_count,
-        SUM(CASE WHEN d.winner = mp.model THEN 1 ELSE 0 END) as wins
-      FROM model_performance mp
-      JOIN debates d ON mp.debate_id = d.id
-      WHERE d.timestamp > ?
-      GROUP BY mp.model
-      ORDER BY avg_score DESC
-    `);
+    // Store SQL queries as strings instead of prepared statements
+    this.queries = {
+      insertDebate: `
+        INSERT INTO debates (id, timestamp, category, question, complexity, models_used, winner, consensus_score, user_feedback, project_path, total_time_seconds)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      insertModelPerformance: `
+        INSERT INTO model_performance (debate_id, model, score, response_time_seconds, tokens_used, cost, error_occurred, error_message, proposal_length, improvements_provided)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      upsertCategoryProfile: `
+        INSERT INTO category_profiles (category, model, win_rate, avg_score, avg_time_seconds, avg_cost, total_debates, total_wins, total_errors, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(category, model) DO UPDATE SET
+          win_rate = excluded.win_rate,
+          avg_score = excluded.avg_score,
+          avg_time_seconds = excluded.avg_time_seconds,
+          avg_cost = excluded.avg_cost,
+          total_debates = excluded.total_debates,
+          total_wins = excluded.total_wins,
+          total_errors = excluded.total_errors,
+          last_updated = excluded.last_updated
+      `,
+      insertPerformanceTrend: `
+        INSERT OR REPLACE INTO performance_trends (model, category, date, avg_score, debates_count, win_rate, avg_cost, avg_time_seconds)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      getModelPerformanceByCategory: `
+        SELECT * FROM category_profiles
+        WHERE category = ?
+        ORDER BY win_rate DESC, avg_score DESC
+      `,
+      getModelOverallPerformance: `
+        SELECT
+          model,
+          AVG(win_rate) as overall_win_rate,
+          AVG(avg_score) as overall_avg_score,
+          AVG(avg_time_seconds) as overall_avg_time,
+          SUM(total_debates) as total_debates,
+          SUM(total_wins) as total_wins,
+          SUM(total_errors) as total_errors
+        FROM category_profiles
+        WHERE model = ?
+        GROUP BY model
+      `,
+      getDebateHistory: `
+        SELECT * FROM debates
+        WHERE category = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `,
+      getRecentPerformance: `
+        SELECT
+          mp.model,
+          AVG(mp.score) as avg_score,
+          COUNT(*) as debate_count,
+          SUM(CASE WHEN d.winner = mp.model THEN 1 ELSE 0 END) as wins
+        FROM model_performance mp
+        JOIN debates d ON mp.debate_id = d.id
+        WHERE d.timestamp > ?
+        GROUP BY mp.model
+        ORDER BY avg_score DESC
+      `
+    };
   }
 
   /**
@@ -96,9 +112,9 @@ export class DatabaseQueries {
    * @param {Array} modelPerformances - Array of model performance data
    */
   async recordDebate(debateData, modelPerformances) {
-    const transaction = this.db.transaction(() => {
+    try {
       // Insert main debate record
-      this.preparedStatements.insertDebate.run(
+      await this.runAsync(this.queries.insertDebate, [
         debateData.id,
         debateData.timestamp,
         debateData.category,
@@ -110,11 +126,11 @@ export class DatabaseQueries {
         debateData.userFeedback,
         debateData.projectPath,
         debateData.totalTimeSeconds
-      );
+      ]);
 
       // Insert model performance records
-      modelPerformances.forEach(perf => {
-        this.preparedStatements.insertModelPerformance.run(
+      for (const perf of modelPerformances) {
+        await this.runAsync(this.queries.insertModelPerformance, [
           debateData.id,
           perf.model,
           perf.score || null,
@@ -125,17 +141,18 @@ export class DatabaseQueries {
           perf.errorMessage || null,
           perf.proposalLength || null,
           perf.improvementsProvided || false
-        );
-      });
+        ]);
+      }
 
       // Update category profiles for each model
-      this.updateCategoryProfiles(debateData.category, modelPerformances, debateData.winner);
+      await this.updateCategoryProfiles(debateData.category, modelPerformances, debateData.winner);
 
       // Update daily performance trends
-      this.updatePerformanceTrends(debateData.category, modelPerformances, debateData.timestamp);
-    });
-
-    transaction();
+      await this.updatePerformanceTrends(debateData.category, modelPerformances, debateData.timestamp);
+    } catch (error) {
+      console.error('Error recording debate:', error);
+      throw error;
+    }
   }
 
   /**
@@ -144,12 +161,13 @@ export class DatabaseQueries {
    * @param {Array} modelPerformances - Model performance data
    * @param {string} winner - Winning model name
    */
-  updateCategoryProfiles(category, modelPerformances, winner) {
-    modelPerformances.forEach(perf => {
+  async updateCategoryProfiles(category, modelPerformances, winner) {
+    for (const perf of modelPerformances) {
       // Get current profile
-      const current = this.db.prepare(`
-        SELECT * FROM category_profiles WHERE category = ? AND model = ?
-      `).get(category, perf.model);
+      const current = await this.getAsync(
+        'SELECT * FROM category_profiles WHERE category = ? AND model = ?',
+        [category, perf.model]
+      );
 
       let newProfile;
       if (current) {
@@ -192,7 +210,7 @@ export class DatabaseQueries {
         };
       }
 
-      this.preparedStatements.upsertCategoryProfile.run(
+      await this.runAsync(this.queries.upsertCategoryProfile, [
         newProfile.category,
         newProfile.model,
         newProfile.winRate,
@@ -203,8 +221,8 @@ export class DatabaseQueries {
         newProfile.totalWins,
         newProfile.totalErrors,
         newProfile.lastUpdated
-      );
-    });
+      ]);
+    }
   }
 
   /**
@@ -213,15 +231,15 @@ export class DatabaseQueries {
    * @param {Array} modelPerformances - Model performance data
    * @param {number} timestamp - Debate timestamp
    */
-  updatePerformanceTrends(category, modelPerformances, timestamp) {
+  async updatePerformanceTrends(category, modelPerformances, timestamp) {
     const date = new Date(timestamp).toISOString().split('T')[0]; // YYYY-MM-DD format
 
-    modelPerformances.forEach(perf => {
+    for (const perf of modelPerformances) {
       // Get existing trend data for today
-      const existing = this.db.prepare(`
-        SELECT * FROM performance_trends
-        WHERE model = ? AND category = ? AND date = ?
-      `).get(perf.model, category, date);
+      const existing = await this.getAsync(
+        'SELECT * FROM performance_trends WHERE model = ? AND category = ? AND date = ?',
+        [perf.model, category, date]
+      );
 
       if (existing) {
         // Update existing trend
@@ -230,7 +248,7 @@ export class DatabaseQueries {
           ((existing.avg_score * existing.debates_count) + perf.score) / newDebatesCount :
           existing.avg_score;
 
-        this.preparedStatements.insertPerformanceTrend.run(
+        await this.runAsync(this.queries.insertPerformanceTrend, [
           perf.model,
           category,
           date,
@@ -239,10 +257,10 @@ export class DatabaseQueries {
           existing.win_rate, // Will be updated separately
           existing.avg_cost,
           existing.avg_time_seconds
-        );
+        ]);
       } else {
         // Create new trend entry
-        this.preparedStatements.insertPerformanceTrend.run(
+        await this.runAsync(this.queries.insertPerformanceTrend, [
           perf.model,
           category,
           date,
@@ -251,9 +269,9 @@ export class DatabaseQueries {
           0, // Will be calculated later
           perf.cost || 0,
           perf.responseTimeSeconds || 0
-        );
+        ]);
       }
-    });
+    }
   }
 
   /**
@@ -262,8 +280,9 @@ export class DatabaseQueries {
    * @param {number} limit - Maximum number of models to return
    * @returns {Array} Array of model performance data
    */
-  getBestModelsForCategory(category, limit = 5) {
-    return this.preparedStatements.getModelPerformanceByCategory.all(category).slice(0, limit);
+  async getBestModelsForCategory(category, limit = 5) {
+    const results = await this.allAsync(this.queries.getModelPerformanceByCategory, [category]);
+    return results.slice(0, limit);
   }
 
   /**
@@ -271,8 +290,8 @@ export class DatabaseQueries {
    * @param {string} model - Model name
    * @returns {Object} Overall performance statistics
    */
-  getModelOverallPerformance(model) {
-    return this.preparedStatements.getModelOverallPerformance.get(model);
+  async getModelOverallPerformance(model) {
+    return await this.getAsync(this.queries.getModelOverallPerformance, [model]);
   }
 
   /**
@@ -280,9 +299,9 @@ export class DatabaseQueries {
    * @param {number} daysBack - Number of days to look back
    * @returns {Array} Recent performance data
    */
-  getRecentPerformance(daysBack = 30) {
+  async getRecentPerformance(daysBack = 30) {
     const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
-    return this.preparedStatements.getRecentPerformance.all(cutoffTime);
+    return await this.allAsync(this.queries.getRecentPerformance, [cutoffTime]);
   }
 
   /**
@@ -291,8 +310,8 @@ export class DatabaseQueries {
    * @param {number} limit - Number of debates to return
    * @returns {Array} Debate history
    */
-  getDebateHistory(category, limit = 50) {
-    return this.preparedStatements.getDebateHistory.all(category, limit);
+  async getDebateHistory(category, limit = 50) {
+    return await this.allAsync(this.queries.getDebateHistory, [category, limit]);
   }
 
   /**
@@ -302,7 +321,7 @@ export class DatabaseQueries {
    * @param {number} days - Number of days to analyze
    * @returns {Array} Performance trend data
    */
-  getPerformanceTrends(model, category = null, days = 90) {
+  async getPerformanceTrends(model, category = null, days = 90) {
     const cutoffDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000))
       .toISOString().split('T')[0];
 
@@ -319,15 +338,15 @@ export class DatabaseQueries {
 
     sql += ' ORDER BY date DESC';
 
-    return this.db.prepare(sql).all(...params);
+    return await this.allAsync(sql, params);
   }
 
   /**
    * Get category statistics
    * @returns {Array} Category statistics including debate counts and model performance
    */
-  getCategoryStatistics() {
-    return this.db.prepare(`
+  async getCategoryStatistics() {
+    return await this.allAsync(`
       SELECT
         c.id as category,
         c.name as category_name,
@@ -341,7 +360,7 @@ export class DatabaseQueries {
       LEFT JOIN model_performance mp ON d.id = mp.debate_id
       GROUP BY c.id, c.name, c.domain
       ORDER BY total_debates DESC, avg_score DESC
-    `).all();
+    `);
   }
 
   /**
@@ -350,7 +369,7 @@ export class DatabaseQueries {
    * @param {string} category - Category to compare (optional)
    * @returns {Array} Comparison data
    */
-  getModelComparison(models, category = null) {
+  async getModelComparison(models, category = null) {
     const placeholders = models.map(() => '?').join(',');
     let sql = `
       SELECT
@@ -375,55 +394,63 @@ export class DatabaseQueries {
 
     sql += ' GROUP BY model, category ORDER BY model, category';
 
-    return this.db.prepare(sql).all(...params);
+    return await this.allAsync(sql, params);
   }
 
   /**
    * Clean up old data (optional maintenance)
    * @param {number} daysToKeep - Number of days of data to retain
    */
-  cleanupOldData(daysToKeep = 365) {
+  async cleanupOldData(daysToKeep = 365) {
     const cutoffTime = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
 
-    const transaction = this.db.transaction(() => {
+    try {
       // Delete old debates (cascades to model_performance)
-      this.db.prepare('DELETE FROM debates WHERE timestamp < ?').run(cutoffTime);
+      await this.runAsync('DELETE FROM debates WHERE timestamp < ?', [cutoffTime]);
 
       // Delete old performance trends
       const cutoffDate = new Date(cutoffTime).toISOString().split('T')[0];
-      this.db.prepare('DELETE FROM performance_trends WHERE date < ?').run(cutoffDate);
-    });
-
-    transaction();
+      await this.runAsync('DELETE FROM performance_trends WHERE date < ?', [cutoffDate]);
+    } catch (error) {
+      console.error('Error cleaning up old data:', error);
+      throw error;
+    }
   }
 
   /**
    * Get database health metrics
    * @returns {Object} Database health information
    */
-  getHealthMetrics() {
+  async getHealthMetrics() {
     try {
-      const stats = {
-        totalDebates: this.db.prepare('SELECT COUNT(*) as count FROM debates').get().count,
-        totalModelPerformances: this.db.prepare('SELECT COUNT(*) as count FROM model_performance').get().count,
-        uniqueModels: this.db.prepare('SELECT COUNT(DISTINCT model) as count FROM model_performance').get().count,
-        uniqueCategories: this.db.prepare('SELECT COUNT(DISTINCT category) as count FROM debates').get().count,
-        recentDebates: this.db.prepare('SELECT COUNT(*) as count FROM debates WHERE timestamp > ?').get(Date.now() - 24*60*60*1000).count,
-        avgDebatesPerDay: null,
-        errorRate: null
-      };
+      const [totalDebates, totalModelPerformances, uniqueModels, uniqueCategories, recentDebates] = await Promise.all([
+        this.getAsync('SELECT COUNT(*) as count FROM debates').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(*) as count FROM model_performance').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(DISTINCT model) as count FROM model_performance').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(DISTINCT category) as count FROM debates').then(row => row?.count || 0),
+        this.getAsync('SELECT COUNT(*) as count FROM debates WHERE timestamp > ?', [Date.now() - 24*60*60*1000]).then(row => row?.count || 0)
+      ]);
 
       // Calculate average debates per day (last 30 days)
       const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      const recentDebatesCount = this.db.prepare('SELECT COUNT(*) as count FROM debates WHERE timestamp > ?').get(thirtyDaysAgo).count;
-      stats.avgDebatesPerDay = Math.round(recentDebatesCount / 30 * 10) / 10;
+      const recentDebatesCount = await this.getAsync('SELECT COUNT(*) as count FROM debates WHERE timestamp > ?', [thirtyDaysAgo])
+        .then(row => row?.count || 0);
+      const avgDebatesPerDay = Math.round(recentDebatesCount / 30 * 10) / 10;
 
       // Calculate error rate
-      const totalPerformances = stats.totalModelPerformances;
-      const errorCount = this.db.prepare('SELECT COUNT(*) as count FROM model_performance WHERE error_occurred = 1').get().count;
-      stats.errorRate = totalPerformances > 0 ? Math.round((errorCount / totalPerformances) * 100 * 10) / 10 : 0;
+      const errorCount = await this.getAsync('SELECT COUNT(*) as count FROM model_performance WHERE error_occurred = 1')
+        .then(row => row?.count || 0);
+      const errorRate = totalModelPerformances > 0 ? Math.round((errorCount / totalModelPerformances) * 100 * 10) / 10 : 0;
 
-      return stats;
+      return {
+        totalDebates,
+        totalModelPerformances,
+        uniqueModels,
+        uniqueCategories,
+        recentDebates,
+        avgDebatesPerDay,
+        errorRate
+      };
     } catch (error) {
       console.error('Error getting health metrics:', error);
       return null;

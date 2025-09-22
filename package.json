@@ -22,6 +22,8 @@
     "test:models": "./test-consensus.sh",
     "test:confidence": "node test-confidence-scorer.js",
     "test:mcp-confidence": "node test-mcp-confidence.js",
+    "test:cache": "node test-cache-direct.js",
+    "test:performance": "node test-performance-tracking.js",
     "test:all": "npm run health && npm test",
     "health": "node health-check.js",
     "install:setup": "node install.js",
@@ -50,10 +52,10 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "axios": "^1.11.0",
-    "sqlite3": "^5.1.7",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "node-fetch": "^3.3.2",
+    "sqlite3": "^5.1.7",
     "uuid": "^10.0.0"
   },
   "engines": {

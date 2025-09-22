@@ -97,7 +97,7 @@ async function testPerformanceTracking() {
 
     // Test 6: Database Statistics
     console.log('\n6️⃣ Testing Database Statistics...');
-    const stats = schema.getStats();
+    const stats = await schema.getStats();
     console.log('✅ Database statistics:');
     console.log(`   Total debates: ${stats.totalDebates}`);
     console.log(`   Total models: ${stats.totalModels}`);
