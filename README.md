@@ -1,6 +1,8 @@
-# MCP Debate Consensus Server
+# AI Expert Consensus v2 - MCP Server
 
-**A revolutionary approach to AI problem-solving through multi-model consensus using Claude CLI with full MCP tool access.**
+**A revolutionary approach to AI problem-solving through intelligent multi-model consensus with advanced learning, caching, and confidence scoring capabilities.**
+
+🆕 **Version 2.0** - Major upgrade with 9 groundbreaking features for production-ready AI consensus!
 
 ## 🎯 Why This Matters
 
@@ -8,11 +10,63 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 
 ### Key Differentiators
 
-- **🧠 True Multi-Model Intelligence**: Not just API calls, but actual Claude CLI instances with complete MCP tool access
-- **🔧 Full Development Capabilities**: Each model can read files, execute commands, search codebases, run tests, and more
-- **🎓 Specialized Expertise**: Each model focuses on their strengths (architecture, testing, algorithms, integration, fast reasoning)
-- **🤝 Consensus Building**: Structured debate process ensures thorough analysis and balanced solutions
-- **🔍 Semantic Scoring**: Advanced algorithm evaluates proposals on relevance, novelty, quality, and coherence
+- **🧠 Intelligent Model Selection**: Gemini-powered coordinator automatically selects optimal models based on question analysis
+- **📊 Performance Tracking**: SQLite-based tracking across 70+ universal categories (not just programming)
+- **⚡ Parallel Processing**: Support for multiple instances per model (e.g., `k1:2,k2:3` for parallel analysis)
+- **🔒 Cross-Verification**: Adversarial testing for critical scenarios (security, finance, legal)
+- **📈 Learning System**: Continuous improvement through pattern analysis and outcome tracking
+- **💯 Confidence Scoring**: 0-100% scores with detailed breakdowns and recommendations
+- **💰 Smart Caching**: 90% cost reduction on repeated questions with intelligent invalidation
+- **📡 Real-time Streaming**: Progressive updates showing debate progress and interim results
+- **🎯 Quality Presets**: Rapid/Balanced/Maximum modes for speed vs quality trade-offs
+- **🔧 Full MCP Access**: Each model can read files, execute commands, search codebases, and more
+
+## 🆕 Version 2.0 Features
+
+### 1. Intelligent Model Selection (Gemini Coordinator)
+- Automatically analyzes questions and selects 3-5 optimal models
+- 70+ universal categories covering all domains
+- Dynamic complexity scoring for optimal resource allocation
+
+### 2. Performance Tracking Database
+- SQLite-based tracking with comprehensive metrics
+- Learns from past debates to improve future performance
+- Detailed analytics per model and category
+
+### 3. Parallel Instance Support
+- Run multiple instances of the same model: `k1:2,k2,k3:3`
+- Increases diversity of perspectives
+- Reduces single-point-of-failure risks
+
+### 4. Cross-Verification System
+- Detects high-risk scenarios (security, finance, legal)
+- Engages adversarial models for thorough testing
+- Ensures robust solutions for critical applications
+
+### 5. Continuous Learning System
+- Pattern recognition across debates
+- Improves model selection over time
+- Adapts to user preferences and domain specifics
+
+### 6. Confidence Scoring (0-100%)
+- Multi-factor confidence analysis
+- Clear recommendations based on confidence levels
+- Helps users understand when to trust results
+
+### 7. Smart Caching System
+- 90% cost reduction on repeated questions
+- Intelligent invalidation based on context changes
+- Memory-efficient LRU eviction
+
+### 8. Real-time Streaming
+- Progressive updates during debate
+- See interim results and model progress
+- Better user experience for long-running debates
+
+### 9. Quality Presets
+- **Rapid (3-5s)**: Single fast model for quick answers
+- **Balanced (30-60s)**: 3 models for thorough analysis
+- **Maximum (2-5min)**: 5 models with verification for critical decisions
 
 ## 🚀 Quick Start
 

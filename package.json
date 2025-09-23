@@ -1,7 +1,7 @@
 {
-  "name": "mcp-debate-consensus",
-  "version": "1.0.0",
-  "description": "MCP server orchestrating multi-model debates for consensus building",
+  "name": "ai-expert-consensus",
+  "version": "2.0.0",
+  "description": "Enterprise-grade AI consensus through intelligent multi-model orchestration with learning, caching, and confidence scoring",
   "main": "index.js",
   "repository": {
     "type": "git",

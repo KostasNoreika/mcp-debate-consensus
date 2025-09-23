@@ -37,8 +37,8 @@ try {
 // Test 3: Parallel Instance Support
 console.log('✅ Test 3: Parallel Instance Support');
 try {
-  const debate = await import('./src/claude-cli-debate.js');
-  const config = debate.parseModelConfig('k1:2,k2,k3:3');
+  const { parseModelConfig } = await import('./src/claude-cli-debate.js');
+  const config = parseModelConfig('k1:2,k2,k3:3');
   console.log('   Parsed config:');
   config.forEach(c => console.log(`     ${c.model}: ${c.count} instance(s)`));
   console.log('   ✓ Parallel instance parsing working\n');

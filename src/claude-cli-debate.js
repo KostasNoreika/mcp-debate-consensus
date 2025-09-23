@@ -1398,4 +1398,11 @@ Provide specific improvements and enhancements.`;
   }
 }
 
+// Export the class
 export { ClaudeCliDebate };
+
+// Export static method for parsing model config
+export function parseModelConfig(config) {
+  const debate = new ClaudeCliDebate();
+  return debate.parseModelConfig(config);
+}
