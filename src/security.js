@@ -16,8 +16,8 @@ class Security {
     // Allowed characters in questions (alphanumeric, spaces, common punctuation)
     this.QUESTION_REGEX = /^[\w\s\-.,!?:;'"()\[\]{}@#$%&*+=/<>|\\~`\n\r]+$/;
     
-    // Path traversal prevention
-    this.PATH_TRAVERSAL_REGEX = /(\.\.|~|^\/)/;
+    // Path traversal prevention - allow absolute paths but block .. and ~
+    this.PATH_TRAVERSAL_REGEX = /(\.\.|~)/;
   }
 
   /**
