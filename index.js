@@ -603,7 +603,8 @@ class DebateConsensusMCP {
                 console.error('[K-PROXY]', data.toString().trim());
                 
                 // Check for successful startup indicators
-                if (startupOutput.includes('proxy running on http://localhost')) {
+                if (startupOutput.includes('proxy running on http://') ||
+                    startupOutput.includes('K-Proxy Server Status:')) {
                     console.error('✅ K-Proxy server started successfully');
                     resolve();
                 }
@@ -629,7 +630,8 @@ class DebateConsensusMCP {
             
             // Timeout after 10 seconds if not started
             setTimeout(() => {
-                if (!startupOutput.includes('proxy running on http://localhost')) {
+                if (!startupOutput.includes('proxy running on http://') &&
+                    !startupOutput.includes('K-Proxy Server Status:')) {
                     console.error('❌ K-Proxy server startup timeout');
                     if (this.proxyProcess) {
                         this.proxyProcess.kill();
