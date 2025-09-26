@@ -92,6 +92,10 @@ export class TelemetryClient {
     const batch = this.queue.splice(0, this.batchSize);
 
     try {
+      // Use AbortController for proper timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(this.endpoint + '/batch', {
         method: 'POST',
         headers: {
@@ -99,8 +103,10 @@ export class TelemetryClient {
           'User-Agent': 'AI-Expert-Consensus/2.0'
         },
         body: JSON.stringify({ batch }),
-        timeout: 5000
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -114,7 +120,7 @@ export class TelemetryClient {
 
     } catch (error) {
       // Silently fail - don't disrupt main functionality
-      if (this.debugMode) {
+      if (this.debugMode && !error.message.includes('aborted')) {
         console.error('Telemetry flush failed:', error.message);
       }
 
