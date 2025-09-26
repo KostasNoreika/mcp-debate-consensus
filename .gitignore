@@ -60,3 +60,6 @@ TEST-REPORT.md
 
 # Task specifications (internal only)
 /tasks/
+
+# Codex AI internal files
+AGENTS.md
