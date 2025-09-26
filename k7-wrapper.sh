@@ -39,4 +39,4 @@ if [ -z "$CLAUDE_CLI_PATH" ]; then
 fi
 
 # Run Claude CLI with all arguments passed through
-exec /Users/kostasnoreika/.npm-global/bin/claude --dangerously-skip-permissions "$@"
+exec "$CLAUDE_CLI_PATH" --dangerously-skip-permissions "$@"
