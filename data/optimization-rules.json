@@ -49,7 +49,8 @@
         "conditions": {},
         "learned": 1758565044767
       }
-    ]
+    ],
+    "tech/programming/architecture": []
   },
   "costOptimizations": {},
   "performanceBoosts": {},
@@ -60,5 +61,5 @@
     "debates100": false,
     "debates500": false
   },
-  "lastUpdated": 1758565044767
+  "lastUpdated": 1758703772641
 }

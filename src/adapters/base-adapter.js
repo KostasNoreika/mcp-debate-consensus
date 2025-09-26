@@ -109,26 +109,26 @@ class BaseAdapter extends EventEmitter {
       const args = this.buildArgs(options);
       const env = this.buildEnv(options);
 
-      const process = spawn(this.cliPath, args, {
-        env: { ...process.env, ...env },
+      const childProcess = spawn(this.cliPath, args, {
+        env: { ...(typeof process !== 'undefined' ? process.env : {}), ...env },
         timeout: this.timeout
       });
 
       let stdout = '';
       let stderr = '';
 
-      process.stdout.on('data', (data) => {
+      childProcess.stdout.on('data', (data) => {
         stdout += data.toString();
         if (this.capabilities.streaming) {
           this.emit('stream:data', data.toString());
         }
       });
 
-      process.stderr.on('data', (data) => {
+      childProcess.stderr.on('data', (data) => {
         stderr += data.toString();
       });
 
-      process.on('close', (code) => {
+      childProcess.on('close', (code) => {
         if (code === 0) {
           resolve({ stdout, stderr, code });
         } else {
@@ -136,14 +136,14 @@ class BaseAdapter extends EventEmitter {
         }
       });
 
-      process.on('error', (error) => {
+      childProcess.on('error', (error) => {
         reject(error);
       });
 
       // Send prompt to stdin
       if (prompt) {
-        process.stdin.write(prompt);
-        process.stdin.end();
+        childProcess.stdin.write(prompt);
+        childProcess.stdin.end();
       }
     });
   }

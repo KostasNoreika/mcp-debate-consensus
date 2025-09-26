@@ -1,5 +1,5 @@
 {
-  "timestamp": 1758565044767,
+  "timestamp": 1758703772640,
   "modelRankings": [
     {
       "id": "k5",
@@ -22,9 +22,9 @@
     {
       "id": "k1",
       "name": "Claude Opus 4.1",
-      "winRate": 0.5,
-      "totalDebates": 4,
-      "avgScore": 0.625,
+      "winRate": 0.3333333333333333,
+      "totalDebates": 6,
+      "avgScore": 0.525,
       "costEfficiency": 0.3,
       "avgResponseTime": 44375
     },
@@ -32,7 +32,7 @@
       "id": "k4",
       "name": "Gemini 2.5 Pro",
       "winRate": 0,
-      "totalDebates": 2,
+      "totalDebates": 4,
       "avgScore": 0.31000000000000005,
       "costEfficiency": 0.7,
       "avgResponseTime": 35000
@@ -41,13 +41,24 @@
       "id": "k2",
       "name": "GPT-5",
       "winRate": 0,
-      "totalDebates": 5,
+      "totalDebates": 7,
       "avgScore": 0.284,
       "costEfficiency": 0.6,
       "avgResponseTime": 27375
     }
   ],
-  "categorySpecialists": {},
+  "categorySpecialists": {
+    "tech/programming/architecture": {
+      "id": "k1",
+      "name": "Claude Opus 4.1",
+      "performance": {
+        "debates": 2,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
+      }
+    }
+  },
   "performanceAlerts": [
     {
       "type": "low_performance",

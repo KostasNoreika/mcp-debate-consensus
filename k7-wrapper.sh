@@ -1,21 +1,22 @@
 #!/bin/bash
 
-# k2 (GPT-5) wrapper script for debate consensus system
+# k7 (DeepSeek R1) wrapper script for debate consensus system
 # Routes through OpenRouter proxy with full MCP tool access
+# Budget-friendly option for non-critical consensus rounds
 
-export CLAUDE_CONFIG_DIR="$HOME/.claude-k2"
-export ANTHROPIC_BASE_URL="http://localhost:3458"
-export ANTHROPIC_API_KEY="k2-debate-key"
+export CLAUDE_CONFIG_DIR="$HOME/.claude-k7"
+export ANTHROPIC_BASE_URL="http://localhost:3463"
+export ANTHROPIC_API_KEY="k7-debate-key"
 
 # Ensure proxy server is running
-if ! curl -s http://localhost:3458/health > /dev/null 2>&1; then
-    echo "Error: k2 proxy server not running. Start it with: node $(dirname "$0")/k-proxy-server.js" >&2
+if ! curl -s http://localhost:3463/health > /dev/null 2>&1; then
+    echo "Error: k7 proxy server not running. Start it with: node $(dirname "$0")/k-proxy-server.js" >&2
     exit 1
 fi
 
 # Ensure MCP config exists
 if [ ! -f "$CLAUDE_CONFIG_DIR/.claude.json" ]; then
-    echo "Error: k2 configuration not found at $CLAUDE_CONFIG_DIR/.claude.json" >&2
+    echo "Error: k7 configuration not found at $CLAUDE_CONFIG_DIR/.claude.json" >&2
     exit 1
 fi
 

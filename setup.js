@@ -11,10 +11,16 @@
  * - Runs health checks
  */
 
-const fs = require('fs').promises;
-const path = require('path');
-const { spawn } = require('child_process');
-const axios = require('axios');
+import { promises as fs } from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 class SetupManager {
     constructor() {
@@ -92,7 +98,7 @@ DEBUG=false
         }
         
         // Load and validate environment variables
-        require('dotenv').config({ path: this.envFile });
+        dotenv.config({ path: this.envFile });
         
         if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_openrouter_api_key_here') {
             throw new Error('OPENROUTER_API_KEY is required in .env file. Get your key from https://openrouter.ai/');
@@ -299,12 +305,10 @@ exec claude "$@"
 }
 
 // Run setup if called directly
-if (require.main === module) {
-    const setup = new SetupManager();
-    setup.run().catch((error) => {
-        console.error('\n💥 Setup failed:', error.message);
-        process.exit(1);
-    });
-}
+const setup = new SetupManager();
+setup.run().catch((error) => {
+    console.error('\n💥 Setup failed:', error.message);
+    process.exit(1);
+});
 
-module.exports = { SetupManager };
+export { SetupManager };

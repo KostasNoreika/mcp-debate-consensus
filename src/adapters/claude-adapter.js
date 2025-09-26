@@ -34,6 +34,11 @@ class ClaudeAdapter extends BaseAdapter {
    */
   async detectCapabilities() {
     try {
+      // Guard against missing process in test environment
+      if (typeof process === 'undefined') {
+        return this.capabilities;
+      }
+
       const result = await this.runCLI('', { args: ['--version'] });
 
       // Check for MCP support
@@ -106,8 +111,9 @@ class ClaudeAdapter extends BaseAdapter {
     const env = {};
 
     // Anthropic API key
-    if (options.apiKey || process.env.ANTHROPIC_API_KEY) {
-      env.ANTHROPIC_API_KEY = options.apiKey || process.env.ANTHROPIC_API_KEY;
+    const anthropicKey = options.apiKey || (typeof process !== 'undefined' ? process.env?.ANTHROPIC_API_KEY : undefined);
+    if (anthropicKey) {
+      env.ANTHROPIC_API_KEY = anthropicKey;
     }
 
     // MCP configuration

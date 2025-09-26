@@ -745,20 +745,28 @@ async function createDebateConsensusMCP() {
 // Create test-compatible class that uses synchronous mocked modules
 class DebateConsensusMCPTest {
             constructor() {
-                // In test environment, we expect mocked modules
-                const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-                
+                // In test environment, we use the same imports
+                this.server = null;
+                this.debate = new ClaudeCliDebate();
+                this.history = new DebateHistory();
+                this.initialized = false;
+            }
+
+            async initialize() {
+                if (this.initialized) return;
+                if (!Server) {
+                    await initializeMCPModules();
+                }
                 this.server = new Server(
                     { name: 'debate-consensus', version: '1.0.0' },
                     { capabilities: { tools: {} } }
                 );
-                
-                this.debate = new SimpleDebate();
-                this.history = new DebateHistory();
                 this.setupTools();
+                this.initialized = true;
             }
 
             setupTools() {
+                if (!this.server) return;
                 this.server.setRequestHandler('tools/list', async () => ({
                     tools: [
                         {

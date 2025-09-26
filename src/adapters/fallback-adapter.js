@@ -14,7 +14,7 @@ class FallbackAdapter extends BaseAdapter {
       ...config
     });
 
-    this.apiKey = config.apiKey || process.env.OPENROUTER_API_KEY;
+    this.apiKey = config.apiKey || (typeof process !== 'undefined' ? process.env?.OPENROUTER_API_KEY : undefined);
     this.apiBase = config.apiBase || 'https://openrouter.ai/api/v1';
     this.model = config.model;
     this.provider = config.provider;

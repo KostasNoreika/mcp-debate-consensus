@@ -1,9 +1,9 @@
 {
-  "totalDebatesAnalyzed": 5,
+  "totalDebatesAnalyzed": 7,
   "patternsDetected": 0,
-  "optimizationsApplied": 5,
-  "costSavingsAchieved": 165,
+  "optimizationsApplied": 7,
+  "costSavingsAchieved": 217,
   "performanceImprovements": 0,
-  "lastAnalysis": 1758565044767,
+  "lastAnalysis": 1758703772640,
   "lastOptimization": null
 }

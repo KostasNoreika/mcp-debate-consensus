@@ -5,11 +5,17 @@
  * Automatically detects OS and sets up Claude CLI integration
  */
 
-const { exec, spawn } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
-const readline = require('readline');
+import { exec, spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import * as fsSync from 'fs';
+import path from 'path';
+import os from 'os';
+import readline from 'readline';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -179,7 +185,7 @@ async function detectClaudeCLI() {
   // Check common locations
   for (const loc of locations) {
     try {
-      await fs.access(loc, fs.constants.X_OK);
+      await fs.access(loc, fsSync.constants.X_OK);
       log(`Claude CLI found at: ${loc}`, 'success');
       return loc;
     } catch {

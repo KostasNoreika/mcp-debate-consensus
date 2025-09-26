@@ -34,12 +34,14 @@ if (!OPENROUTER_API_KEY) {
 
 console.log(`⏱️  Timeout configured: ${DEBATE_TIMEOUT_MINUTES} minutes (${TIMEOUT_MS}ms)`);
 
-// Model mapping for k1-k4 (updated with specified OpenRouter models)
+// Model mapping for k1-k8 (updated with specified OpenRouter models)
 const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',    // Architecture expert (Claude Opus 4.1)
-  'k2': 'openai/gpt-5',            // Testing expert (GPT-5)
+  'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
-  'k4': 'google/gemini-2.5-pro'        // Integration expert (Gemini 2.5 Pro)
+  'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
+  'k7': 'deepseek/deepseek-r1',         // Budget validator (DeepSeek R1 - MIT licensed)
+  'k8': 'z-ai/glm-4.5'                  // Open-source backup (GLM-4.5 - powerful MoE)
 };
 
 // Conservative token limits for each model (for cost-effectiveness)
@@ -47,15 +49,19 @@ const maxTokensMap = {
   'k1': 16000,   // Claude Opus 4.1 (max: 32k)
   'k2': 32000,   // GPT-5 (max: 128k!)
   'k3': 16000,   // Qwen 3 Max (max: 32k)
-  'k4': 32000    // Gemini 2.5 Pro (max: 66k)
+  'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
+  'k7': 8000,    // DeepSeek R1 (conservative for cost)
+  'k8': 8000     // GLM-4.5 (conservative for cost)
 };
 
 // Port mapping for each k instance
 const portMap = {
   'k1': 3457,
-  'k2': 3458, 
+  'k2': 3458,
   'k3': 3459,
-  'k4': 3460
+  'k4': 3460,
+  'k7': 3463,
+  'k8': 3464
 };
 
 function createProxyServer(kInstance) {
@@ -102,14 +108,22 @@ function createProxyServer(kInstance) {
       if (!response.data.choices || !response.data.choices[0]) {
         throw new Error(`Invalid OpenRouter response: ${JSON.stringify(response.data).substring(0, 200)}`);
       }
-      
+
+      // Get content from response, handle different formats
+      let messageContent = response.data.choices[0].message.content;
+
+      // If content is empty or just whitespace, provide a default
+      if (!messageContent || messageContent.trim() === '') {
+        messageContent = 'Model response was empty. Please try rephrasing the question.';
+      }
+
       const claudeResponse = {
         id: response.data.id,
         type: 'message',
         role: 'assistant',
         content: [{
           type: 'text',
-          text: response.data.choices[0].message.content
+          text: messageContent
         }],
         model: model,
         stop_reason: response.data.choices[0].finish_reason,
@@ -227,8 +241,8 @@ const servers = [];
 Object.keys(modelMap).forEach(kInstance => {
   const { app, port } = createProxyServer(kInstance);
   
-  const server = app.listen(port, 'localhost', () => {
-    console.log(`✅ ${kInstance} proxy running on http://localhost:${port} -> ${modelMap[kInstance]}`);
+  const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`✅ ${kInstance} proxy running on http://0.0.0.0:${port} -> ${modelMap[kInstance]}`);
   });
   
   servers.push({ instance: kInstance, server, port });
@@ -247,8 +261,10 @@ process.on('SIGINT', () => {
 
 console.log('\n📡 K-Proxy Server Status:');
 console.log('k1 (Claude Opus 4.1):    http://localhost:3457');
-console.log('k2 (GPT-5):              http://localhost:3458'); 
+console.log('k2 (GPT-5):              http://localhost:3458');
 console.log('k3 (Qwen 3 Max):         http://localhost:3459');
 console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460');
+console.log('k7 (DeepSeek R1):        http://localhost:3463');
+console.log('k8 (GLM-4.5):            http://localhost:3464');
 console.log(`\nTimeout: ${DEBATE_TIMEOUT_MINUTES} minutes per request (configurable via DEBATE_TIMEOUT_MINUTES env var)`);
 console.log('Press Ctrl+C to stop all proxies\n');

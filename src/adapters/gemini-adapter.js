@@ -17,7 +17,7 @@ class GeminiAdapter extends BaseAdapter {
     });
 
     this.model = config.model || 'gemini-2.5-pro';
-    this.apiKey = config.apiKey || process.env.GOOGLE_API_KEY;
+    this.apiKey = config.apiKey || (typeof process !== 'undefined' ? process.env?.GOOGLE_API_KEY : undefined);
     this.configPath = config.configPath || path.join(os.homedir(), '.gemini', 'config.json');
     this.sandboxMode = config.sandboxMode !== false; // Default to true for safety
 
@@ -44,6 +44,11 @@ class GeminiAdapter extends BaseAdapter {
    */
   async detectCapabilities() {
     try {
+      // Guard against missing process in test environment
+      if (typeof process === 'undefined') {
+        return this.capabilities;
+      }
+
       const result = await this.runCLI('', { args: ['--version'] });
 
       // Check for model variants
@@ -162,13 +167,15 @@ class GeminiAdapter extends BaseAdapter {
     }
 
     // Project ID for Vertex AI
-    if (options.projectId || process.env.GOOGLE_PROJECT_ID) {
-      env.GOOGLE_PROJECT_ID = options.projectId || process.env.GOOGLE_PROJECT_ID;
+    const projectId = options.projectId || (typeof process !== 'undefined' ? process.env?.GOOGLE_PROJECT_ID : undefined);
+    if (projectId) {
+      env.GOOGLE_PROJECT_ID = projectId;
     }
 
     // Location for Vertex AI
-    if (options.location || process.env.GOOGLE_LOCATION) {
-      env.GOOGLE_LOCATION = options.location || process.env.GOOGLE_LOCATION;
+    const location = options.location || (typeof process !== 'undefined' ? process.env?.GOOGLE_LOCATION : undefined);
+    if (location) {
+      env.GOOGLE_LOCATION = location;
     }
 
     // Debug mode

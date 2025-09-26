@@ -5,11 +5,21 @@
  * Verifies all components are properly configured and working
  */
 
-const { exec } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
-const http = require('http');
-require('dotenv').config();
+import { exec } from 'child_process';
+import { promises as fs } from 'fs';
+import * as fsSync from 'fs';
+import path from 'path';
+import http from 'http';
+import https from 'https';
+import os from 'os';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config();
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -194,11 +204,11 @@ class HealthCheck {
           resolve(true);
         } else {
           // Check local installation
-          const homeDir = require('os').homedir();
+          const homeDir = os.homedir();
           const localPath = path.join(homeDir, '.claude', 'local', 'claude');
           
           try {
-            await fs.access(localPath, fs.constants.X_OK);
+            await fs.access(localPath, fsSync.constants.X_OK);
             this.results.passed.push('Claude CLI found (local)');
             this.log(`Claude CLI found at: ${localPath} ✓`, 'success');
             resolve(true);
@@ -219,7 +229,7 @@ class HealthCheck {
     
     for (const wrapper of wrappers) {
       try {
-        await fs.access(wrapper, fs.constants.R_OK);
+        await fs.access(wrapper, fsSync.constants.R_OK);
         this.log(`  - ${wrapper} ✓`, 'success');
       } catch {
         allFound = false;
@@ -239,7 +249,7 @@ class HealthCheck {
   }
 
   async checkConfigDirs() {
-    const homeDir = require('os').homedir();
+    const homeDir = os.homedir();
     const configs = ['.claude-k1', '.claude-k2', '.claude-k3', '.claude-k4'];
     let allFound = true;
     
@@ -313,7 +323,7 @@ class HealthCheck {
         max_tokens: 20  // Minimum 20 tokens for health check
       });
       
-      const req = require('https').request({
+      const req = https.request({
         hostname: 'openrouter.ai',
         path: '/api/v1/chat/completions',
         method: 'POST',
@@ -357,7 +367,7 @@ class HealthCheck {
         max_tokens: 20  // Minimum 20 tokens for health check
       });
       
-      const req = require('https').request({
+      const req = https.request({
         hostname: 'openrouter.ai',
         path: '/api/v1/chat/completions',
         method: 'POST',
@@ -455,14 +465,12 @@ class HealthCheck {
 }
 
 // Run health check
-if (require.main === module) {
-  const healthCheck = new HealthCheck();
-  healthCheck.run().then(exitCode => {
-    process.exit(exitCode);
-  }).catch(error => {
-    console.error(`${COLORS.red}Health check failed: ${error.message}${COLORS.reset}`);
-    process.exit(1);
-  });
-}
+const healthCheck = new HealthCheck();
+healthCheck.run().then(exitCode => {
+  process.exit(exitCode);
+}).catch(error => {
+  console.error(`${COLORS.red}Health check failed: ${error.message}${COLORS.reset}`);
+  process.exit(1);
+});
 
-module.exports = { HealthCheck };
+export { HealthCheck };

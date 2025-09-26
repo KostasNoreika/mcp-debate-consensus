@@ -35,6 +35,9 @@ import { CrossVerifier } from './cross-verifier.js';
 // Import Learning System
 import { LearningSystem } from './learning/learning-system.js';
 
+// Import Telemetry Client
+import { sendTelemetry } from './telemetry-client.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class ClaudeCliDebate {
@@ -46,26 +49,26 @@ class ClaudeCliDebate {
       verbose: process.env.DEBATE_PROGRESS_VERBOSE === 'true'
     });
 
-    // Define models with k1-k4 wrapper scripts
+    // Define models with k1-k8 wrapper scripts
     this.models = [
-      { 
-        alias: 'k1', 
-        name: 'Claude Opus 4.1', 
-        role: 'Architecture', 
+      {
+        alias: 'k1',
+        name: 'Claude Opus 4.1',
+        role: 'Architecture',
         expertise: 'System architecture and design patterns',
         wrapper: path.join(__dirname, '..', 'k1-wrapper.sh')
       },
-      { 
-        alias: 'k2', 
-        name: 'GPT-5', 
-        role: 'Testing', 
+      {
+        alias: 'k2',
+        name: 'GPT-5',
+        role: 'Testing',
         expertise: 'Testing strategies, debugging, and quality assurance',
         wrapper: path.join(__dirname, '..', 'k2-wrapper.sh')
       },
-      { 
-        alias: 'k3', 
-        name: 'Qwen 3 Max', 
-        role: 'Algorithms', 
+      {
+        alias: 'k3',
+        name: 'Qwen 3 Max',
+        role: 'Algorithms',
         expertise: 'Algorithm optimization and data structures',
         wrapper: path.join(__dirname, '..', 'k3-wrapper.sh')
       },
@@ -82,6 +85,20 @@ class ClaudeCliDebate {
         role: 'Fast Reasoning',
         expertise: 'Rapid reasoning, coding optimization, and cost-efficient analysis',
         wrapper: path.join(__dirname, '..', 'k5-wrapper.sh')
+      },
+      {
+        alias: 'k7',
+        name: 'DeepSeek R1',
+        role: 'Budget Validator',
+        expertise: 'Cost-effective validation and verification (MIT licensed)',
+        wrapper: path.join(__dirname, '..', 'k7-wrapper.sh')
+      },
+      {
+        alias: 'k8',
+        name: 'GLM-4.5',
+        role: 'Open-source Backup',
+        expertise: 'General reasoning and backup analysis (MIT licensed)',
+        wrapper: path.join(__dirname, '..', 'k8-wrapper.sh')
       }
     ];
     
@@ -250,6 +267,31 @@ class ClaudeCliDebate {
     console.log('❓ Question:', question);
     console.log('🔧 Tool Access: Full MCP integration enabled');
 
+    // Automatiškai aktyvuoju ultrathink, jei užklausa sudėtinga
+    const complexPatterns = [
+      'architect', 'design', 'optimiz', 'scale', 'distributed',
+      'performance', 'security', 'algorithm', 'structure'
+    ];
+
+    const isComplex = complexPatterns.some(p => question.toLowerCase().includes(p));
+
+    if (options.ultrathink || question.toLowerCase().includes('ultrathink') || isComplex) {
+      console.log('🧠 ULTRATHINK: Maksimalus mąstymo gylis aktyvuotas');
+      options.ultrathink = true;
+    }
+
+    // Automatiškai naudoju budget mode rutininėms užklausoms
+    const simplePatterns = ['what is', 'how to', 'explain', 'list', 'show'];
+    const isSimple = simplePatterns.some(p => question.toLowerCase().includes(p));
+
+    if (!options.mode && (isSimple || question.length < 50)) {
+      options.mode = 'budget';
+      console.log('💰 Automatiškai pasirinktas ekonomiškas režimas');
+    }
+
+    // Store original mode in options
+    this.currentMode = options.mode;
+
     // Check cache first if caching is enabled and not bypassed
     if (this.cachingEnabled && !options.bypassCache && !options.fresh) {
       this.progressReporter.setPhase('Checking cache');
@@ -319,6 +361,19 @@ class ClaudeCliDebate {
         console.log(`⚡ Instance variety: Different seeds and temperatures for diverse perspectives`);
       }
 
+    } else if (this.currentMode === 'budget') {
+      // Budget mode: Use k7, k8, k1
+      console.log('\n💰 BUDGET MODE: Using cost-effective models\n');
+      this.selectedModels = this.models
+        .filter(m => ['k7', 'k8', 'k1'].includes(m.alias))
+        .map(m => ({
+          ...m,
+          instanceId: 1,
+          totalInstances: 1,
+          instanceConfig: null
+        }));
+      console.log('🤖 Budget models:', this.selectedModels.map(m => `${m.alias}=${m.name}`).join(', '));
+
     } else if (this.useIntelligentSelection) {
       // Intelligent model selection using Gemini Coordinator
       this.progressReporter.setPhase('Analyzing question for optimal model selection');
@@ -367,7 +422,7 @@ class ClaudeCliDebate {
       // Round 1: Get proposals
       this.progressReporter.setPhase('Round 1: Independent Analysis with Tool Access');
       console.log('🔄 ROUND 1: Independent Analysis with Tool Access\n');
-      const proposals = await this.getProposals(question, projectPath);
+      const proposals = await this.getProposals(question, projectPath, options);
     
       if (Object.keys(proposals).length < 2) {
         const failedModels = this.models.filter(m => !proposals[m.name]).map(m => m.name);
@@ -434,7 +489,7 @@ class ClaudeCliDebate {
       // Round 2: Improvements
       this.progressReporter.setPhase('Round 2: Collaborative Improvements with Tools');
       console.log('\n🔄 ROUND 2: Collaborative Improvements with Tools\n');
-      const improvements = await this.getImprovements(best, question, projectPath);
+      const improvements = await this.getImprovements(best, question, projectPath, options);
 
       this.progressReporter.progress('Improvements collected', {
         percentage: 70,
@@ -579,7 +634,7 @@ class ClaudeCliDebate {
    * Call model using Claude CLI with full tool access
    * Supports parallel instances with different seeds/temperatures
    */
-  async callModel(model, prompt, projectPath = process.cwd(), instanceConfig = null) {
+  async callModel(model, prompt, projectPath = process.cwd(), instanceConfig = null, options = {}) {
     const maxRetries = 2;
 
     // Update model status to waiting initially
@@ -596,6 +651,11 @@ class ClaudeCliDebate {
 
         // Create a comprehensive prompt that includes project context
         let fullPrompt = `You are ${model.name}, an expert in ${model.expertise}.`;
+
+        // Add ultrathink for Claude models if enabled
+        if (options.ultrathink && model.alias === 'k1') {
+          fullPrompt = `ultrathink\n\n${fullPrompt}`;
+        }
 
         // Add instance-specific context if this is a parallel instance
         if (instanceConfig) {
@@ -852,7 +912,7 @@ INSTRUCTIONS:
   /**
    * Run parallel instances of the same model and synthesize results
    */
-  async runParallelInstances(baseModel, instanceConfigs, question, projectPath) {
+  async runParallelInstances(baseModel, instanceConfigs, question, projectPath, options = {}) {
     console.log(`  🔀 Running ${instanceConfigs.length} parallel instances of ${baseModel.name}...`);
 
     const instancePromises = instanceConfigs.map(async (instanceConfig, index) => {
@@ -875,7 +935,7 @@ Your role: ${baseModel.role}
 Your expertise: ${baseModel.expertise}
 Instance focus: ${instanceConfig.focus}`;
 
-      const result = await this.callModel(instanceModel, prompt, projectPath, instanceConfig);
+      const result = await this.callModel(instanceModel, prompt, projectPath, instanceConfig, options);
       return { instanceConfig, result, instanceModel };
     });
 
@@ -985,7 +1045,7 @@ This is the best result from ${instanceResults.length} parallel instances of ${b
   /**
    * Get proposals from selected models with parallel instance support
    */
-  async getProposals(question, projectPath) {
+  async getProposals(question, projectPath, options = {}) {
     const proposals = {};
     const startTime = Date.now();
 
@@ -1037,7 +1097,7 @@ Use all available tools to:
 Your role: ${baseModel.role}
 Your expertise: ${baseModel.expertise}`;
 
-        result = await this.callModel(instances[0], prompt, projectPath);
+        result = await this.callModel(instances[0], prompt, projectPath, null, options);
       } else {
         // Multiple instances or configured instances, run in parallel
         const instanceConfigs = instances.map(inst =>
@@ -1050,7 +1110,7 @@ Your expertise: ${baseModel.expertise}`;
           }
         );
 
-        result = await this.runParallelInstances(baseModel, instanceConfigs, question, projectPath);
+        result = await this.runParallelInstances(baseModel, instanceConfigs, question, projectPath, options);
       }
 
       const modelTime = Math.round((Date.now() - modelStart) / 1000);
@@ -1115,7 +1175,7 @@ Your expertise: ${baseModel.expertise}`;
   /**
    * Get improvements from other models
    */
-  async getImprovements(best, question, projectPath) {
+  async getImprovements(best, question, projectPath, options = {}) {
     const improvements = {};
 
     // Use selected models instead of all models
@@ -1144,7 +1204,7 @@ Instructions:
 
 Provide specific improvements and enhancements.`;
         
-        const result = await this.callModel(model, prompt, projectPath);
+        const result = await this.callModel(model, prompt, projectPath, null, options);
         return { model: model.name, result };
       });
     

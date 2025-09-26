@@ -17,7 +17,7 @@ class CodexAdapter extends BaseAdapter {
     });
 
     this.model = config.model || 'gpt-5';
-    this.apiKey = config.apiKey || process.env.OPENAI_API_KEY;
+    this.apiKey = config.apiKey || (typeof process !== 'undefined' ? process.env?.OPENAI_API_KEY : undefined);
     this.configPath = config.configPath || path.join(os.homedir(), '.codex', 'config.json');
 
     this.capabilities = {
@@ -43,6 +43,11 @@ class CodexAdapter extends BaseAdapter {
    */
   async detectCapabilities() {
     try {
+      // Guard against missing process in test environment
+      if (typeof process === 'undefined') {
+        return this.capabilities;
+      }
+
       const result = await this.runCLI('', { args: ['--version'] });
 
       // Check for available models
@@ -135,8 +140,9 @@ class CodexAdapter extends BaseAdapter {
     }
 
     // Organization ID
-    if (options.organization || process.env.OPENAI_ORGANIZATION) {
-      env.OPENAI_ORGANIZATION = options.organization || process.env.OPENAI_ORGANIZATION;
+    const orgId = options.organization || (typeof process !== 'undefined' ? process.env?.OPENAI_ORGANIZATION : undefined);
+    if (orgId) {
+      env.OPENAI_ORGANIZATION = orgId;
     }
 
     // Debug mode
