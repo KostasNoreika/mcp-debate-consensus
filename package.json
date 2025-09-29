@@ -1,6 +1,6 @@
 {
   "name": "ai-expert-consensus",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Enterprise-grade AI consensus through intelligent multi-model orchestration with learning, caching, and confidence scoring",
   "main": "index.js",
   "repository": {
@@ -23,8 +23,11 @@
     "test:confidence": "node test-confidence-scorer.js",
     "test:mcp-confidence": "node test-mcp-confidence.js",
     "test:cache": "node test-cache-direct.js",
+    "test:retry": "NODE_OPTIONS='--experimental-vm-modules' jest tests/unit/retry-handler.test.js",
     "test:performance": "node test-performance-tracking.js",
-    "test:all": "npm run health && npm test",
+    "test:security": "node test-security.js",
+    "test:client": "node client-signing-example.js demo",
+    "test:all": "npm run health && npm run test:security && npm test",
     "health": "node health-check.js",
     "install:setup": "node install.js",
     "clean": "rm -rf logs/*.json coverage node_modules package-lock.json",
@@ -33,6 +36,9 @@
     "validate": "node -e \"const { config } = require('./src/config'); try { config.validate(); console.log('✅ Configuration is valid'); } catch (e) { console.error('❌ Configuration validation failed:', e.message); process.exit(1); }\"",
     "config:show": "node -e \"const { config } = require('./src/config'); console.log(JSON.stringify(config.getAll(), null, 2));\"",
     "config:check": "node -e \"const { config } = require('./src/config'); console.log('Environment:', process.env.NODE_ENV || 'development'); console.log('Config loaded successfully'); console.log('Models available:', Object.keys(config.get('models')));\"",
+    "security:test": "node test-security.js",
+    "security:generate-secret": "node client-signing-example.js generate-secret",
+    "security:status": "curl -s http://localhost:3457/security/status | json_pp",
     "learning:test": "node test-learning-system.js",
     "learning:report": "node -e \"import('./src/learning/learning-system.js').then(async ({LearningSystem}) => {const ls = new LearningSystem(); await ls.initialize(); const report = await ls.generateComprehensiveReport(); console.log('📋 Learning report generated successfully'); });\"",
     "learning:status": "node -e \"import('./src/learning/learning-system.js').then(async ({LearningSystem}) => {const ls = new LearningSystem(); await ls.initialize(); const status = ls.getQuickStatus(); console.log('🧠 Learning System Status:', JSON.stringify(status, null, 2)); });\"",
@@ -44,7 +50,10 @@
     "consensus",
     "synthesis",
     "claude",
-    "openrouter"
+    "openrouter",
+    "security",
+    "hmac",
+    "authentication"
   ],
   "author": "Your Name",
   "license": "MIT",
@@ -54,6 +63,7 @@
     "axios": "^1.11.0",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "jest-junit": "^16.0.0",
     "node-fetch": "^3.3.2",
     "sqlite3": "^5.1.7",
     "uuid": "^10.0.0"

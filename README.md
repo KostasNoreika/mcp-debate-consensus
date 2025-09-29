@@ -1,8 +1,8 @@
-# AI Expert Consensus v2 - MCP Server
+# AI Expert Consensus v2.1 - MCP Server
 
-**A revolutionary approach to AI problem-solving through intelligent multi-model consensus with advanced learning, caching, and confidence scoring capabilities.**
+**Enterprise-grade AI problem-solving through intelligent multi-model consensus with advanced security, retry handling, and comprehensive monitoring capabilities.**
 
-🆕 **Version 2.0** - Major upgrade with 9 groundbreaking features for production-ready AI consensus!
+🆕 **Version 2.1** - Production-ready with enterprise security features, retry handlers, and monitoring!
 
 ## 🎯 Why This Matters
 
@@ -21,52 +21,31 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 - **🎯 Quality Presets**: Rapid/Balanced/Maximum modes for speed vs quality trade-offs
 - **🔧 Full MCP Access**: Each model can read files, execute commands, search codebases, and more
 
-## 🆕 Version 2.0 Features
+## 🆕 Version 2.1 Features
 
-### 1. Intelligent Model Selection (Gemini Coordinator)
-- Automatically analyzes questions and selects 3-5 optimal models
-- 70+ universal categories covering all domains
-- Dynamic complexity scoring for optimal resource allocation
+### Enterprise Security & Authentication
+- **🔐 HMAC-SHA256 Request Signing**: Cryptographic authentication with timing-safe comparison
+- **🛡️ Replay Attack Prevention**: Nonce-based protection and timestamp validation
+- **🚦 Rate Limiting**: Configurable per-IP and per-API-key limits with HTTP headers
+- **🔍 Input Validation**: XSS, injection, and path traversal protection
+- **📊 Security Headers**: HSTS, CSP, X-Frame-Options, and more
+- **📝 Audit Logging**: Comprehensive security event tracking
 
-### 2. Performance Tracking Database
-- SQLite-based tracking with comprehensive metrics
-- Learns from past debates to improve future performance
-- Detailed analytics per model and category
+### Reliability & Monitoring
+- **🔄 Exponential Backoff Retry**: Intelligent retry with jitter and error classification
+- **📈 Performance Tracking**: SQLite-based metrics with 70+ categories
+- **🔥 Health Monitoring**: System health checks and diagnostic tools
+- **📡 Telemetry System**: Anonymous usage statistics (opt-out available)
 
-### 3. Parallel Instance Support
-- Run multiple instances of the same model: `k1:2,k2,k3:3`
-- Increases diversity of perspectives
-- Reduces single-point-of-failure risks
-
-### 4. Cross-Verification System
-- Detects high-risk scenarios (security, finance, legal)
-- Engages adversarial models for thorough testing
-- Ensures robust solutions for critical applications
-
-### 5. Continuous Learning System
-- Pattern recognition across debates
-- Improves model selection over time
-- Adapts to user preferences and domain specifics
-
-### 6. Confidence Scoring (0-100%)
-- Multi-factor confidence analysis
-- Clear recommendations based on confidence levels
-- Helps users understand when to trust results
-
-### 7. Smart Caching System
-- 90% cost reduction on repeated questions
-- Intelligent invalidation based on context changes
-- Memory-efficient LRU eviction
-
-### 8. Real-time Streaming
-- Progressive updates during debate
-- See interim results and model progress
-- Better user experience for long-running debates
-
-### 9. Quality Presets
-- **Rapid (3-5s)**: Single fast model for quick answers
-- **Balanced (30-60s)**: 3 models for thorough analysis
-- **Maximum (2-5min)**: 5 models with verification for critical decisions
+### Core AI Capabilities
+- **🧠 Intelligent Model Selection**: Gemini-powered coordinator for optimal model selection
+- **⚡ Parallel Processing**: Multiple instances per model with diversity scoring
+- **💯 Confidence Scoring**: 0-100% confidence with detailed breakdowns
+- **💰 Smart Caching**: 90% cost reduction with intelligent invalidation
+- **🎯 Quality Presets**: Rapid/Balanced/Maximum modes for speed vs quality
+- **🔒 Cross-Verification**: Adversarial testing for critical scenarios
+- **📊 Learning System**: Continuous improvement through pattern analysis
+- **📡 Real-time Streaming**: Progressive updates and interim results
 
 ## 🚀 Quick Start
 
@@ -75,24 +54,40 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 git clone https://github.com/KostasNoreika/mcp-debate-consensus.git
 cd mcp-debate-consensus && npm install
 
-# 2. Configure API key (REQUIRED!)
+# 2. Configure environment (REQUIRED!)
 cp .env.example .env
-# Edit .env and add your OpenRouter API key
+# Edit .env and configure:
+# - OPENROUTER_API_KEY=your_api_key_here
+# - HMAC_SECRET=your_64_char_secret_here (generate with: npm run security:generate-secret)
 
-# 3. Run automated setup
+# 3. Run automated setup and health check
 node install.js
-
-# 4. Start the proxy server (REQUIRED before using!)
-node k-proxy-server.js &
-
-# 5. Run health check
 node health-check.js
 
-# 6. Test the system
+# 4. Start services (REQUIRED!)
+node k-proxy-server.js &    # Start proxy servers (ports 3457-3464)
+npm start                   # Start MCP server
+
+# 5. Test the system
+npm run test:security       # Test security implementation
 node test-debate.js "What's the best architecture for a real-time chat app?"
+
+# 6. Register with Claude CLI
+# Add to ~/.claude.json:
+{
+  "mcpServers": {
+    "debate-consensus": {
+      "command": "node",
+      "args": ["/path/to/debate-consensus/index.js"]
+    }
+  }
+}
 ```
 
-⚠️ **Important**: You MUST have an OpenRouter API key and configure it in `.env` file before using the system!
+⚠️ **Requirements**:
+- OpenRouter API key from [OpenRouter](https://openrouter.ai/keys)
+- Node.js 18+
+- For production: Generate secure HMAC secret
 
 ## 🏗️ Architecture
 
@@ -257,11 +252,45 @@ The installer will:
 Create a `.env` file with:
 
 ```env
+# === REQUIRED ===
 OPENROUTER_API_KEY=your_api_key_here
-CLAUDE_CLI_PATH=/path/to/claude   # Optional: override auto-detection
-PROXY_PORT=3456                   # Optional: base port for proxy servers
-DEBATE_TIMEOUT=1800000            # Optional: max debate time (30 min default)
-MIN_MODELS_REQUIRED=2             # Optional: minimum models for consensus
+
+# === SECURITY (Production Recommended) ===
+HMAC_SECRET=your_64_char_secret_here      # Generate with: npm run security:generate-secret
+ENABLE_REQUEST_SIGNING=true               # Enable HMAC request signing
+SIGNATURE_VALIDITY_WINDOW=300             # Request validity window (5 minutes)
+
+# === RETRY CONFIGURATION ===
+MAX_RETRIES=3                             # Maximum retry attempts
+INITIAL_RETRY_DELAY=1000                  # Initial delay (1 second)
+MAX_RETRY_DELAY=30000                     # Maximum delay (30 seconds)
+BACKOFF_MULTIPLIER=2                      # Exponential backoff multiplier
+
+# === RATE LIMITING ===
+RATE_LIMIT_MAX_REQUESTS=10                # Requests per window
+RATE_LIMIT_WINDOW_MS=60000                # Rate limit window (1 minute)
+
+# === OPTIONAL ===
+CLAUDE_CLI_PATH=/path/to/claude           # Override auto-detection
+PROXY_PORT=3456                           # Base port for proxy servers
+DEBATE_TIMEOUT_MINUTES=60                 # Max debate time (60 min default)
+MIN_MODELS_REQUIRED=2                     # Minimum models for consensus
+TELEMETRY_DISABLED=false                  # Disable anonymous telemetry
+```
+
+### Security Configuration
+
+For production deployments, security features are essential:
+
+```bash
+# Generate a secure HMAC secret (required for production)
+npm run security:generate-secret
+
+# Test security implementation
+npm run test:security
+
+# Check security status
+npm run security:status
 ```
 
 #### Claude CLI Auto-Detection
@@ -311,47 +340,150 @@ The semantic scoring algorithm evaluates each proposal:
 
 ## 🧪 Testing
 
+### Health Check & System Validation
 ```bash
-# Run health check
+# Comprehensive health check
 node health-check.js
 
-# Test basic functionality
+# Validate configuration
+npm run validate
+
+# Check system status
+npm run config:show
+```
+
+### Security Testing
+```bash
+# Run security test suite
+npm run test:security
+
+# Test client authentication
+npm run test:client
+
+# Test rate limiting and validation
+curl -X POST http://localhost:3457/v1/chat/completions -H "Content-Type: application/json"
+```
+
+### Functional Testing
+```bash
+# Run all tests
 npm test
 
-# Test debate with custom question
+# Test debate functionality
 node test-debate.js "Your question here"
+
+# Test retry mechanisms
+npm run test:retry
+
+# Test performance tracking
+npm run test:performance
+
+# Test confidence scoring
+npm run test:confidence
+
+# Test caching system
+npm run test:cache
 
 # Run comprehensive test suite
 npm run test:all
 ```
 
+### Learning System Testing
+```bash
+# Check learning system status
+npm run learning:status
+
+# Generate performance report
+npm run learning:report
+
+# Reset learning data (use carefully)
+npm run learning:reset
+```
+
 ## 🔒 Security Features
 
-- **Input Validation**: All inputs sanitized and validated
+### Enterprise-Grade Security
+- **🔐 HMAC-SHA256 Request Signing**: Cryptographic authentication with replay protection
+- **🛡️ Input Validation**: XSS, SQL injection, and path traversal prevention
+- **🚦 Rate Limiting**: Configurable per-IP and per-API-key limits
+- **📊 Security Headers**: HSTS, CSP, X-Frame-Options, and more
+- **📝 Audit Logging**: Comprehensive security event tracking
+- **🔍 Nonce Protection**: Prevents replay attacks with unique request identifiers
+- **⏰ Timestamp Validation**: Request freshness validation
+- **🚫 Path Restrictions**: Prevents unauthorized file system access
+
+### Security Best Practices
 - **API Key Protection**: Keys never exposed in logs or outputs
-- **Rate Limiting**: Prevents abuse and excessive API usage
-- **Path Restrictions**: Prevents access to system directories
 - **Secure Communication**: All model communication encrypted
+- **Timing-Safe Comparison**: Prevents timing attacks
+- **Automatic Cleanup**: Expired nonces and rate limit data cleanup
+
+For detailed security configuration, see [SECURITY.md](SECURITY.md).
 
 ## 🚦 Health Monitoring
 
-The built-in health check verifies:
+The comprehensive health check verifies:
 
-- ✅ Node.js version compatibility
-- ✅ All dependencies installed
+- ✅ Node.js version compatibility (18+)
+- ✅ All dependencies installed and versions
 - ✅ Environment properly configured
-- ✅ Proxy servers running
-- ✅ Claude CLI available
-- ✅ API connection working
+- ✅ Proxy servers running on correct ports (3457-3464)
+- ✅ Claude CLI available and accessible
+- ✅ OpenRouter API connection working
+- ✅ Security configuration valid
+- ✅ Database connectivity (SQLite)
+- ✅ File system permissions
+- ✅ Model endpoints responsive
 
-Run: `node health-check.js`
+```bash
+# Run comprehensive health check
+node health-check.js
 
-## 📈 Performance
+# Quick status check
+npm run config:check
+```
 
-- **Parallel Processing**: Models analyze independently in Round 1
-- **Efficient Caching**: Responses cached to reduce API calls
-- **Timeout Management**: Configurable timeouts prevent hanging
-- **Resource Optimization**: Automatic cleanup of old logs
+## 📈 Performance Tuning
+
+### System Performance
+- **Parallel Processing**: Models analyze independently with configurable concurrency
+- **Efficient Caching**: 90% cost reduction with intelligent invalidation
+- **Timeout Management**: Configurable timeouts prevent hanging operations
+- **Resource Optimization**: Automatic cleanup of logs and temporary files
+
+### Quality vs Speed Presets
+```bash
+# Rapid: 3-5 seconds, single fast model
+DEBATE_PRESET=rapid
+
+# Balanced: 30-60 seconds, 3-4 models (default)
+DEBATE_PRESET=balanced
+
+# Maximum: 2-5 minutes, 5+ models with verification
+DEBATE_PRESET=maximum
+```
+
+### Performance Configuration
+```env
+# Retry performance
+MAX_RETRIES=3                    # Adjust based on reliability needs
+INITIAL_RETRY_DELAY=1000         # Start with 1 second
+MAX_RETRY_DELAY=30000            # Cap at 30 seconds
+
+# Timeout settings
+DEBATE_TIMEOUT_MINUTES=60        # Max debate time
+SIGNATURE_VALIDITY_WINDOW=300    # Security window (5 minutes)
+
+# Rate limiting for performance
+RATE_LIMIT_MAX_REQUESTS=10       # Requests per minute
+RATE_LIMIT_WINDOW_MS=60000       # Rate limit window
+```
+
+### Monitoring & Metrics
+- **Real-time Statistics**: Retry rates, success rates, response times
+- **Performance Database**: SQLite tracking across 70+ categories
+- **Telemetry**: Anonymous usage statistics (opt-out available)
+- **Learning System**: Pattern recognition and optimization recommendations
 
 ## 🤝 Contributing
 

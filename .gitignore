@@ -1,20 +1,17 @@
 # Environment Variables
 .env
-.env.local
-.env.production
-.env.keys
+.env.*
 *.env
 
-# Node modules
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Logs
 logs/
 *.log
-test-output/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS Files
 .DS_Store
@@ -26,40 +23,48 @@ Thumbs.db
 *.swp
 *.swo
 
-# Build outputs
+# Build & Test
 dist/
 build/
 coverage/
+test-output/
+test-results/
+*.test.json
+TEST-REPORT.md
 
-# Temporary files
+# Temporary Files
 *.tmp
 tmp/
 temp/
 .cache/
 
-# API Keys and Secrets
-*-key
-*-secret
+# Security Files
 *.key
 *.pem
 *.cert
+*-key
+*-secret
 
-# Claude CLI files
-.claude.json
-~/.claude*
+# Claude CLI Files
 .claude-models
 .claude-k-models
 
-# Proxy server pid files
+# Database Files
+*.db
+data/*.db
+
+# Cache Files
+cache/*.json
+
+# Proxy Server
 *.pid
 
-# Test artifacts
-test-results/
-*.test.json
-TEST-REPORT.md
-
-# Task specifications (internal only)
+# Task Files (Internal)
 /tasks/
 
-# Codex AI internal files
+# Codex AI Internal
 AGENTS.md
+
+# Generated Reports
+*_REPORT.md
+*_SUMMARY.md

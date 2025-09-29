@@ -664,6 +664,7 @@ Return your analysis as JSON:
   async fallbackAnalysis(question, options = {}) {
     console.log('🔄 Using fallback analysis logic...');
 
+    if (!question) question = '';
     const questionLower = question.toLowerCase();
     let category = 'general/analysis';
     let complexity = 0.5;
@@ -725,6 +726,7 @@ Return your analysis as JSON:
    */
   extractContextClues(question) {
     const clues = [];
+    if (!question) return clues;
     const questionLower = question.toLowerCase();
 
     // Programming languages

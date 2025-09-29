@@ -1,10 +1,11 @@
 /**
  * Security module for MCP Debate Consensus Server
- * Handles input validation, sanitization, and security checks
+ * Handles input validation, sanitization, request signing, and security checks
  */
 
 import path from 'path';
 import fs from 'fs/promises';
+import * as crypto from 'crypto';
 
 class Security {
   constructor() {
@@ -12,219 +13,549 @@ class Security {
     this.MAX_QUESTION_LENGTH = 5000;
     this.MAX_PATH_LENGTH = 500;
     this.MAX_DEBATE_TIME = 3600000; // 1 hour
-    
+
     // Allowed characters in questions (alphanumeric, spaces, common punctuation)
     this.QUESTION_REGEX = /^[\w\s\-.,!?:;'"()\[\]{}@#$%&*+=/<>|\\~`\n\r]+$/;
-    
+
     // Path traversal prevention - allow absolute paths but block .. and ~
     this.PATH_TRAVERSAL_REGEX = /(\.\.|~)/;
+
+    // Request signing configuration
+    this.ENABLE_REQUEST_SIGNING = process.env.ENABLE_REQUEST_SIGNING !== 'false';
+    this.SIGNATURE_VALIDITY_WINDOW = parseInt(process.env.SIGNATURE_VALIDITY_WINDOW) || 300; // 5 minutes
+    this.HMAC_SECRET = process.env.HMAC_SECRET || this._generateHmacSecret();
+
+    // Rate limiting configuration
+    this.DEFAULT_RATE_LIMIT = 10; // requests per window
+    this.DEFAULT_RATE_WINDOW = 60000; // 1 minute
+
+    // Security features configuration
+    this.features = {
+      inputValidation: true,
+      rateLimiting: true,
+      signatureValidation: this.ENABLE_REQUEST_SIGNING,
+      contentTypeValidation: true,
+      ipValidation: true,
+      auditLogging: true,
+      securityHeaders: true
+    };
+
+    // Track rate limits per IP/identifier
+    this.rateLimitStore = new Map();
+
+    // Track nonces for replay protection
+    this.nonceStore = new Map();
+    this.NONCE_EXPIRY = 300000; // 5 minutes
   }
 
   /**
-   * Validate and sanitize question input
+   * Generate HMAC secret if not provided
    */
-  validateQuestion(question) {
-    if (!question || typeof question !== 'string') {
-      throw new Error('Question must be a non-empty string');
-    }
-    
-    if (question.length > this.MAX_QUESTION_LENGTH) {
-      throw new Error(`Question exceeds maximum length of ${this.MAX_QUESTION_LENGTH} characters`);
-    }
-    
-    // Check for potential injection attempts
-    if (!this.QUESTION_REGEX.test(question)) {
-      throw new Error('Question contains invalid characters');
-    }
-    
-    // Check for common injection patterns
-    const injectionPatterns = [
-      /\$\{.*\}/,  // Template literal injection
-      /\$\(.*\)/,  // Command substitution
-      /`.*`/,      // Backtick command execution
-      /<script/i,  // Script tags
-      /javascript:/i, // JavaScript protocol
-      /on\w+=/i,   // Event handlers
-    ];
-    
-    for (const pattern of injectionPatterns) {
-      if (pattern.test(question)) {
-        throw new Error('Question contains potentially malicious content');
-      }
-    }
-    
-    // Sanitize by trimming and normalizing whitespace
-    return question.trim().replace(/\s+/g, ' ');
+  _generateHmacSecret() {
+    return crypto.randomBytes(32).toString('hex');
   }
 
   /**
-   * Validate project path input
+   * Validate input string for security threats
    */
-  async validateProjectPath(projectPath) {
-    if (!projectPath || typeof projectPath !== 'string') {
-      return process.cwd(); // Default to current directory
-    }
-    
-    if (projectPath.length > this.MAX_PATH_LENGTH) {
-      throw new Error(`Path exceeds maximum length of ${this.MAX_PATH_LENGTH} characters`);
-    }
-    
-    // Check for path traversal attempts
-    if (this.PATH_TRAVERSAL_REGEX.test(projectPath)) {
-      throw new Error('Path contains potentially malicious patterns');
-    }
-    
-    // Resolve to absolute path and check if it exists
-    const absolutePath = path.resolve(projectPath);
-    
+  validateInput(input) {
     try {
-      const stats = await fs.stat(absolutePath);
-      if (!stats.isDirectory()) {
-        throw new Error('Path must be a directory');
+      // Check if input exists and is a string
+      if (!input || typeof input !== 'string') {
+        return false;
       }
+
+      // Check length limits
+      if (input.length > this.MAX_QUESTION_LENGTH) {
+        return false;
+      }
+
+      // Check for malicious patterns
+      const maliciousPatterns = [
+        // Script injection
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        /javascript:/gi,
+        /data:text\/html/gi,
+        /vbscript:/gi,
+        /on\w+\s*=/gi,
+        /<img\s+[^>]*src\s*=/gi,
+        /<svg\s+[^>]*on/gi,
+        /<iframe/gi,
+        /eval\s*\(/gi,
+        /Function\s*\(/gi,
+        /setTimeout\s*\(/gi,
+
+        // SQL injection
+        /(union\s+select|insert\s+into|delete\s+from|drop\s+table|update\s+set)/gi,
+        /('|(\\x27)|(\\x2D\\x2D)|(\*\/)|(\*)).*?(\s*(or|and)\s+)/gi,
+        /'\s*(or|OR|and|AND)\s+['"]?\d*['"]?\s*=\s*['"]?\d*['"]?/gi,
+        /;\s*(DROP|INSERT|UPDATE|DELETE|SELECT)/gi,
+        /SLEEP\s*\(/gi,
+
+        // Command injection
+        /[;&|`$]/gi,
+        /\$\([^)]*\)/gi,
+        /`[^`]*`/gi,
+        /rm\s+-rf/gi,
+        /cat\s+\/etc\/passwd/gi,
+        /wget\s+/gi,
+        /curl\s+/gi,
+        /nc\s+/gi,
+        /python\s+-c/gi,
+
+        // Path traversal
+        this.PATH_TRAVERSAL_REGEX,
+        /file:\/\//gi,
+        /\.\.\/|\.\.%2[fF]/gi,
+        /\.\.\\|\.\.%5[cC]/gi,
+        /%00/gi,
+
+        // Encoded attacks
+        /%3c%73%63%72%69%70%74/gi,
+        /%22%3e%3cscript/gi,
+        /&lt;script/gi,
+
+        // NoSQL injection
+        /\$ne\s*:/gi,
+        /\$regex\s*:/gi,
+        /\$where\s*:/gi,
+        /\$gt\s*:/gi,
+
+        // LDAP injection
+        /\*\)\(/gi,
+        /\*\)\|\(/gi,
+
+        // Null bytes
+        /\x00/gi,
+
+        // Protocol handlers
+        /mailto:/gi,
+        /ftp:/gi,
+        /file:/gi
+      ];
+
+      return !maliciousPatterns.some(pattern => pattern.test(input));
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        throw new Error('Project path does not exist');
-      }
-      throw error;
+      console.error('Input validation error:', error);
+      return false;
     }
-    
-    // Ensure path is within allowed boundaries (not system directories)
-    const restrictedPaths = [
-      '/etc',
-      '/usr',
-      '/bin',
-      '/sbin',
-      '/var',
-      '/sys',
-      '/proc',
-      'C:\\Windows',
-      'C:\\Program Files',
-      'C:\\ProgramData'
-    ];
-    
-    const normalizedPath = absolutePath.toLowerCase();
-    for (const restricted of restrictedPaths) {
-      if (normalizedPath.startsWith(restricted.toLowerCase())) {
-        throw new Error('Access to system directories is restricted');
-      }
-    }
-    
-    return absolutePath;
   }
 
   /**
-   * Validate environment variables
+   * Validate file path for security
    */
-  validateEnvironment() {
-    const errors = [];
-    
-    // Check for required environment variables
-    if (!process.env.OPENROUTER_API_KEY) {
-      errors.push('OPENROUTER_API_KEY environment variable is not set');
-    } else if (process.env.OPENROUTER_API_KEY === 'your_openrouter_api_key_here') {
-      errors.push('OPENROUTER_API_KEY has not been configured (still using default value)');
+  validatePath(filePath) {
+    if (!filePath || typeof filePath !== 'string') {
+      return false;
     }
-    
-    // Validate API key format (basic check)
-    if (process.env.OPENROUTER_API_KEY) {
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      if (apiKey.length < 20 || apiKey.length > 200) {
-        errors.push('OPENROUTER_API_KEY appears to be invalid');
-      }
-      
-      // Check for common placeholder patterns
-      if (/^(sk-)?[xX]+$/.test(apiKey) || /your.*key/i.test(apiKey)) {
-        errors.push('OPENROUTER_API_KEY appears to be a placeholder');
-      }
-    }
-    
-    return errors;
-  }
 
-  /**
-   * Sanitize output before sending to client
-   */
-  sanitizeOutput(output) {
-    if (typeof output !== 'string') {
-      return output;
+    if (filePath.length > this.MAX_PATH_LENGTH) {
+      return false;
     }
-    
-    // Remove any potential API keys or sensitive data
-    const sensitivePatterns = [
-      /sk-[a-zA-Z0-9]{48}/g,  // OpenAI-style keys
-      /Bearer [a-zA-Z0-9\-._~+/]+=*/g,  // Bearer tokens
-      /api[_-]?key[\"']?\s*[:=]\s*[\"']?[a-zA-Z0-9\-._~+/]+/gi,  // API key patterns
-      /password[\"']?\s*[:=]\s*[\"']?[^\s\"']+/gi,  // Password patterns
-      /secret[\"']?\s*[:=]\s*[\"']?[^\s\"']+/gi,  // Secret patterns
-    ];
-    
-    let sanitized = output;
-    for (const pattern of sensitivePatterns) {
-      sanitized = sanitized.replace(pattern, '[REDACTED]');
-    }
-    
-    return sanitized;
-  }
 
-  /**
-   * Rate limiting check (simple in-memory implementation)
-   */
-  checkRateLimit(identifier, maxRequests = 10, windowMs = 60000) {
-    if (!this.rateLimits) {
-      this.rateLimits = new Map();
+    // Check for path traversal
+    if (this.PATH_TRAVERSAL_REGEX.test(filePath)) {
+      return false;
     }
-    
-    const now = Date.now();
-    const window = this.rateLimits.get(identifier) || { count: 0, resetTime: now + windowMs };
-    
-    // Reset window if expired
-    if (now > window.resetTime) {
-      window.count = 0;
-      window.resetTime = now + windowMs;
-    }
-    
-    window.count++;
-    this.rateLimits.set(identifier, window);
-    
-    if (window.count > maxRequests) {
-      const waitTime = Math.ceil((window.resetTime - now) / 1000);
-      throw new Error(`Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`);
-    }
-    
+
     return true;
   }
 
   /**
-   * Validate debate timeout
+   * Generate HMAC signature for request
    */
-  validateTimeout(timeout) {
-    if (timeout && (typeof timeout !== 'number' || timeout < 0 || timeout > this.MAX_DEBATE_TIME)) {
-      throw new Error(`Invalid timeout. Must be between 0 and ${this.MAX_DEBATE_TIME}ms`);
+  generateSignature(data, secret = this.HMAC_SECRET) {
+    try {
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(data);
+      return hmac.digest('hex');
+    } catch (error) {
+      console.error('Signature generation error:', error);
+      return null;
     }
-    return timeout || 1800000; // Default 30 minutes
   }
 
   /**
-   * Clean up old logs and temporary files
+   * Validate HMAC signature
    */
-  async cleanupOldFiles(logsDir, maxAge = 7 * 24 * 60 * 60 * 1000) { // 7 days
+  validateSignature(data, signature, secret = this.HMAC_SECRET) {
     try {
-      const files = await fs.readdir(logsDir);
+      if (!signature) {
+        return false;
+      }
+
+      const expectedSignature = this.generateSignature(data, secret);
+      if (!expectedSignature) {
+        return false;
+      }
+
+      // Use timing-safe comparison to prevent timing attacks
+      const sigBuffer = Buffer.from(signature, 'hex');
+      const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+
+      if (sigBuffer.length !== expectedBuffer.length) {
+        return false;
+      }
+
+      return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+    } catch (error) {
+      console.error('Signature validation error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Generate and validate nonces for replay protection
+   */
+  generateNonce() {
+    return crypto.randomBytes(16).toString('hex');
+  }
+
+  /**
+   * Validate nonce and ensure it hasn't been used before
+   */
+  validateNonce(nonce) {
+    if (!nonce || typeof nonce !== 'string') {
+      return false;
+    }
+
+    // Check if nonce was already used
+    if (this.nonceStore.has(nonce)) {
+      return false;
+    }
+
+    // Store nonce with timestamp
+    const now = Date.now();
+    this.nonceStore.set(nonce, now);
+
+    // Clean up expired nonces
+    this._cleanupExpiredNonces();
+
+    return true;
+  }
+
+  /**
+   * Clean up expired nonces
+   */
+  _cleanupExpiredNonces() {
+    const now = Date.now();
+    const expired = [];
+
+    for (const [nonce, timestamp] of this.nonceStore.entries()) {
+      if (now - timestamp > this.NONCE_EXPIRY) {
+        expired.push(nonce);
+      }
+    }
+
+    expired.forEach(nonce => this.nonceStore.delete(nonce));
+  }
+
+  /**
+   * Validate timestamp for request freshness
+   */
+  validateTimestamp(timestamp) {
+    if (!timestamp) {
+      return false;
+    }
+
+    const requestTime = parseInt(timestamp);
+    const now = Date.now();
+    const timeDiff = Math.abs(now - requestTime);
+
+    // Allow requests within the validity window
+    return timeDiff <= this.SIGNATURE_VALIDITY_WINDOW * 1000;
+  }
+
+  /**
+   * Sanitize output to remove sensitive information
+   */
+  sanitizeOutput(text) {
+    if (!text || typeof text !== 'string') {
+      return text;
+    }
+
+    // Remove potential sensitive patterns
+    let sanitized = text
+      // Remove API keys
+      .replace(/sk-[a-zA-Z0-9]{32,}/g, '[API_KEY_REDACTED]')
+      .replace(/Bearer\s+[a-zA-Z0-9\-_\.]+/g, '[BEARER_TOKEN_REDACTED]')
+      // Remove secrets
+      .replace(/secret["\s]*[:=]["\s]*[a-zA-Z0-9]{16,}/gi, 'secret="[REDACTED]"')
+      .replace(/password["\s]*[:=]["\s]*[^\s"]+/gi, 'password="[REDACTED]"')
+      // Remove potential file paths with sensitive info
+      .replace(/\/home\/[^\s]+/g, '/home/[USER_PATH_REDACTED]')
+      .replace(/\/Users\/[^\s]+/g, '/Users/[USER_PATH_REDACTED]')
+      // Remove email addresses in error messages
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]');
+
+    return sanitized;
+  }
+
+  /**
+   * Sign outgoing request for enhanced security
+   */
+  signOutgoingRequest(method, url, body, apiKey) {
+    try {
+      const timestamp = Date.now().toString();
+      const nonce = this.generateNonce();
+      const bodyString = typeof body === 'object' ? JSON.stringify(body) : body;
+      const dataToSign = `${method}:${url}:${timestamp}:${nonce}:${bodyString}`;
+
+      const signature = this.generateSignature(dataToSign, apiKey);
+
+      return {
+        headers: {
+          'X-Timestamp': timestamp,
+          'X-Nonce': nonce,
+          'X-Signature': signature
+        },
+        signedData: dataToSign
+      };
+    } catch (error) {
+      console.error('Outgoing request signing error:', error);
+      return { headers: {} };
+    }
+  }
+
+  /**
+   * Validate IP address
+   */
+  validateIPAddress(ip) {
+    if (!ip || typeof ip !== 'string') {
+      return false;
+    }
+
+    // Basic IPv4 validation
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipv4Regex.test(ip)) {
+      return false;
+    }
+
+    // Check for suspicious patterns
+    const suspiciousPatterns = [
+      /0\.0\.0\.0/,
+      /255\.255\.255\.255/,
+      /[<>'"]/,
+      /;|\||&/
+    ];
+
+    return !suspiciousPatterns.some(pattern => pattern.test(ip));
+  }
+
+  /**
+   * Validate JSON content for security threats
+   */
+  validateJsonContent(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const jsonStr = JSON.stringify(parsed);
+
+      // Check for prototype pollution attempts
+      const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+      const hasDangerousKeys = dangerousKeys.some(key =>
+        jsonStr.includes(`"${key}"`) || jsonStr.includes(`'${key}'`)
+      );
+
+      if (hasDangerousKeys) {
+        return false;
+      }
+
+      // Check for NoSQL injection patterns
+      const nosqlPatterns = [
+        /\$ne/gi,
+        /\$regex/gi,
+        /\$where/gi,
+        /\$gt/gi,
+        /\$lt/gi,
+        /\$in/gi,
+        /\$nin/gi
+      ];
+
+      const hasNosqlInjection = nosqlPatterns.some(pattern => pattern.test(jsonStr));
+      if (hasNosqlInjection) {
+        return false;
+      }
+
+      // Validate each string value in the JSON
+      const validateJsonValue = (obj) => {
+        if (typeof obj === 'string') {
+          return this.validateInput(obj);
+        } else if (Array.isArray(obj)) {
+          return obj.every(validateJsonValue);
+        } else if (obj && typeof obj === 'object') {
+          return Object.values(obj).every(validateJsonValue);
+        }
+        return true;
+      };
+
+      return validateJsonValue(parsed);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Create rate limiting middleware
+   */
+  rateLimitMiddleware(options = {}) {
+    const {
+      maxRequests = this.DEFAULT_RATE_LIMIT,
+      windowMs = this.DEFAULT_RATE_WINDOW,
+      keyGenerator = (req) => req.ip
+    } = options;
+
+    return (req, res, next) => {
+      const key = keyGenerator(req);
       const now = Date.now();
-      
-      for (const file of files) {
-        const filePath = path.join(logsDir, file);
-        const stats = await fs.stat(filePath);
-        
-        if (now - stats.mtime.getTime() > maxAge) {
-          await fs.unlink(filePath);
-          console.log(`Cleaned up old file: ${file}`);
+      const windowStart = now - windowMs;
+
+      // Clean up old entries
+      if (this.rateLimitStore.has(key)) {
+        const requests = this.rateLimitStore.get(key).filter(time => time > windowStart);
+        this.rateLimitStore.set(key, requests);
+      } else {
+        this.rateLimitStore.set(key, []);
+      }
+
+      const requests = this.rateLimitStore.get(key);
+
+      if (requests.length >= maxRequests) {
+        return res.status(429).json({
+          error: 'Too many requests',
+          retryAfter: Math.ceil(windowMs / 1000)
+        });
+      }
+
+      requests.push(now);
+      next();
+    };
+  }
+
+  /**
+   * Security headers middleware
+   */
+  securityHeadersMiddleware() {
+    return (req, res, next) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('X-XSS-Protection', '1; mode=block');
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; object-src 'none';");
+      next();
+    };
+  }
+
+  /**
+   * Audit middleware for logging security events
+   */
+  auditMiddleware() {
+    return (req, res, next) => {
+      const auditData = {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        contentType: req.headers['content-type']
+      };
+
+      // Log basic request info
+      console.log(`[AUDIT] ${auditData.method} ${auditData.url} from ${auditData.ip}`);
+
+      // Check for suspicious patterns in request body
+      if (req.body && typeof req.body === 'object') {
+        const bodyString = JSON.stringify(req.body);
+        if (!this.validateJsonContent(bodyString)) {
+          console.warn(`[AUDIT] Suspicious request detected from ${auditData.ip}:`, {
+            ...auditData,
+            suspiciousBody: bodyString.substring(0, 200)
+          });
         }
       }
-    } catch (error) {
-      console.error('Error cleaning up old files:', error);
-    }
+
+      next();
+    };
+  }
+
+  /**
+   * Signature validation middleware
+   */
+  signatureMiddleware() {
+    return (req, res, next) => {
+      if (!this.ENABLE_REQUEST_SIGNING) {
+        return next();
+      }
+
+      const signature = req.headers['x-signature'];
+      const timestamp = req.headers['x-timestamp'];
+      const nonce = req.headers['x-nonce'];
+
+      if (!signature || !timestamp) {
+        return res.status(401).json({
+          error: 'Missing required signature headers'
+        });
+      }
+
+      // Check timestamp validity
+      if (!this.validateTimestamp(timestamp)) {
+        return res.status(401).json({
+          error: 'Request timestamp expired'
+        });
+      }
+
+      // Check nonce for replay protection
+      if (nonce && !this.validateNonce(nonce)) {
+        return res.status(401).json({
+          error: 'Invalid or reused nonce'
+        });
+      }
+
+      // Validate signature
+      const payload = req.rawBody || JSON.stringify(req.body || {});
+      const dataToSign = nonce
+        ? `${req.method}:${req.url}:${timestamp}:${nonce}:${payload}`
+        : `${req.method}:${req.url}:${timestamp}:${payload}`;
+
+      if (!this.validateSignature(dataToSign, signature)) {
+        return res.status(401).json({
+          error: 'Invalid request signature'
+        });
+      }
+
+      next();
+    };
+  }
+
+  /**
+   * Configure security features
+   */
+  configure(config) {
+    this.features = { ...this.features, ...config };
+  }
+
+  /**
+   * Get security status
+   */
+  getSecurityStatus() {
+    return {
+      enabled: true,
+      features: this.features,
+      rateLimitStore: {
+        size: this.rateLimitStore.size,
+        activeIPs: Array.from(this.rateLimitStore.keys())
+      },
+      nonceStore: {
+        size: this.nonceStore.size
+      },
+      config: {
+        maxQuestionLength: this.MAX_QUESTION_LENGTH,
+        maxPathLength: this.MAX_PATH_LENGTH,
+        signatureValidityWindow: this.SIGNATURE_VALIDITY_WINDOW,
+        requestSigningEnabled: this.ENABLE_REQUEST_SIGNING,
+        nonceExpiry: this.NONCE_EXPIRY
+      }
+    };
   }
 }
 

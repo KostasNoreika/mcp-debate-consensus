@@ -38,6 +38,9 @@ import { LearningSystem } from './learning/learning-system.js';
 // Import Telemetry Client
 import { sendTelemetry } from './telemetry-client.js';
 
+// Import Retry Handler for robust error handling
+import { RetryHandler, ErrorClassifier } from './utils/retry-handler.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class ClaudeCliDebate {
@@ -161,6 +164,18 @@ class ClaudeCliDebate {
       modelTimes: {},
       failedModels: []
     };
+
+    // Initialize retry handler for robust error handling
+    this.retryHandler = new RetryHandler({
+      maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
+      initialDelay: parseInt(process.env.INITIAL_RETRY_DELAY) || 1000,
+      maxDelay: parseInt(process.env.MAX_RETRY_DELAY) || 30000,
+      backoffMultiplier: parseFloat(process.env.BACKOFF_MULTIPLIER) || 2,
+      timeoutMs: this.timeout, // Use debate timeout
+      enableLogging: process.env.NODE_ENV !== 'test' && process.env.RETRY_LOGGING !== 'false'
+    });
+
+    console.log(`🔄 Retry handler initialized: max ${this.retryHandler.config.maxRetries} retries, ${this.retryHandler.config.initialDelay}ms initial delay`);
   }
 
   async initialize() {
@@ -284,9 +299,16 @@ class ClaudeCliDebate {
     const simplePatterns = ['what is', 'how to', 'explain', 'list', 'show'];
     const isSimple = simplePatterns.some(p => question.toLowerCase().includes(p));
 
-    if (!options.mode && (isSimple || question.length < 50)) {
-      options.mode = 'budget';
-      console.log('💰 Automatiškai pasirinktas ekonomiškas režimas');
+    // DISABLED: Always use full mode with all 7 models
+    // if (!options.mode && (isSimple || question.length < 50)) {
+    //   options.mode = 'budget';
+    //   console.log('💰 Automatiškai pasirinktas ekonomiškas režimas');
+    // }
+
+    // Force full mode if no mode specified
+    if (!options.mode) {
+      options.mode = 'full';
+      console.log('🚀 Using FULL mode with all 7 models (default)');
     }
 
     // Store original mode in options
@@ -362,17 +384,17 @@ class ClaudeCliDebate {
       }
 
     } else if (this.currentMode === 'budget') {
-      // Budget mode: Use k7, k8, k1
-      console.log('\n💰 BUDGET MODE: Using cost-effective models\n');
+      // Budget mode: NOW USES ALL 7 MODELS (k1-k5, k7-k8)
+      console.log('\n💰 BUDGET MODE (UPGRADED): Using ALL 7 models\n');
       this.selectedModels = this.models
-        .filter(m => ['k7', 'k8', 'k1'].includes(m.alias))
+        .filter(m => ['k1', 'k2', 'k3', 'k4', 'k5', 'k7', 'k8'].includes(m.alias))
         .map(m => ({
           ...m,
           instanceId: 1,
           totalInstances: 1,
           instanceConfig: null
         }));
-      console.log('🤖 Budget models:', this.selectedModels.map(m => `${m.alias}=${m.name}`).join(', '));
+      console.log('🤖 All models:', this.selectedModels.map(m => `${m.alias}=${m.name}`).join(', '));
 
     } else if (this.useIntelligentSelection) {
       // Intelligent model selection using Gemini Coordinator
@@ -631,42 +653,41 @@ class ClaudeCliDebate {
   }
 
   /**
-   * Call model using Claude CLI with full tool access
+   * Call model using Claude CLI with full tool access and robust retry logic
    * Supports parallel instances with different seeds/temperatures
    */
   async callModel(model, prompt, projectPath = process.cwd(), instanceConfig = null, options = {}) {
-    const maxRetries = 2;
-
     // Update model status to waiting initially
     this.progressReporter.updateModelStatus(model.name, 'waiting');
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.error(`  🔄 ${model.name} (attempt ${attempt}/${maxRetries}) - Starting Claude CLI...`);
+    try {
+      const result = await this.retryHandler.execute(
+        async () => {
+          console.error(`  🔄 ${model.name} - Starting Claude CLI...`);
 
-        // Update model status to starting
-        this.progressReporter.updateModelStatus(model.name, 'starting');
+          // Update model status to starting
+          this.progressReporter.updateModelStatus(model.name, 'starting');
 
-        const startTime = Date.now();
+          const startTime = Date.now();
 
-        // Create a comprehensive prompt that includes project context
-        let fullPrompt = `You are ${model.name}, an expert in ${model.expertise}.`;
+          // Create a comprehensive prompt that includes project context
+          let fullPrompt = `You are ${model.name}, an expert in ${model.expertise}.`;
 
-        // Add ultrathink for Claude models if enabled
-        if (options.ultrathink && model.alias === 'k1') {
-          fullPrompt = `ultrathink\n\n${fullPrompt}`;
-        }
+          // Add ultrathink for Claude models if enabled
+          if (options.ultrathink && model.alias === 'k1') {
+            fullPrompt = `ultrathink\n\n${fullPrompt}`;
+          }
 
-        // Add instance-specific context if this is a parallel instance
-        if (instanceConfig) {
-          fullPrompt += `\n\nINSTANCE CONTEXT:
+          // Add instance-specific context if this is a parallel instance
+          if (instanceConfig) {
+            fullPrompt += `\n\nINSTANCE CONTEXT:
 - Instance ${instanceConfig.instanceId} of ${instanceConfig.totalInstances}
 - Seed: ${instanceConfig.seed}
 - Temperature: ${instanceConfig.temperature}
 - Focus: ${instanceConfig.focus || 'General analysis'}`;
-        }
+          }
 
-        fullPrompt += `\n\nTASK: ${prompt}
+          fullPrompt += `\n\nTASK: ${prompt}
 
 PROJECT CONTEXT:
 - Working Directory: ${projectPath}
@@ -687,54 +708,65 @@ INSTRUCTIONS:
 4. Provide a comprehensive solution with code examples
 5. Focus on your area of expertise: ${model.expertise}`;
 
-        if (instanceConfig) {
-          fullPrompt += `\n6. ${instanceConfig.instructions || 'Provide a unique perspective based on your instance configuration'}`;
-        }
-
-        fullPrompt += `\n\nPlease provide a detailed analysis and solution.`;
-
-        // Update status to running
-        this.progressReporter.updateModelStatus(model.name, 'running');
-
-        const result = await this.spawnClaude(model, fullPrompt, projectPath, instanceConfig);
-        const duration = Math.round((Date.now() - startTime) / 1000);
-
-        if (!result) {
-          throw new Error('Empty response from Claude CLI');
-        }
-
-        // Update status to completed
-        this.progressReporter.updateModelStatus(model.name, 'completed');
-        console.error(`  ✅ ${model.name} completed (${duration}s, ${result.length} chars)`);
-
-        // Track model timing for performance analysis
-        if (this.trackingEnabled && this.debateMetrics) {
-          this.debateMetrics.modelTimes[model.name] = duration;
-        }
-
-        return result;
-
-      } catch (error) {
-        console.error(`  ❌ ${model.name} attempt ${attempt} failed:`, error.message);
-
-        if (attempt === maxRetries) {
-          console.error(`  🚫 ${model.name} failed after ${maxRetries} attempts`);
-          this.progressReporter.updateModelStatus(model.name, 'failed');
-
-          // Track failed models for performance analysis
-          if (this.trackingEnabled && this.debateMetrics) {
-            this.debateMetrics.failedModels.push(model.name);
+          if (instanceConfig) {
+            fullPrompt += `\n6. ${instanceConfig.instructions || 'Provide a unique perspective based on your instance configuration'}`;
           }
 
-          return null;
+          fullPrompt += `\n\nPlease provide a detailed analysis and solution.`;
+
+          // Update status to running
+          this.progressReporter.updateModelStatus(model.name, 'running');
+
+          const result = await this.spawnClaude(model, fullPrompt, projectPath, instanceConfig);
+          const duration = Math.round((Date.now() - startTime) / 1000);
+
+          if (!result) {
+            throw new Error('Empty response from Claude CLI');
+          }
+
+          // Update status to completed
+          this.progressReporter.updateModelStatus(model.name, 'completed');
+          console.error(`  ✅ ${model.name} completed (${duration}s, ${result.length} chars)`);
+
+          // Track model timing for performance analysis
+          if (this.trackingEnabled && this.debateMetrics) {
+            this.debateMetrics.modelTimes[model.name] = duration;
+          }
+
+          return result;
+        },
+        {
+          name: `callModel(${model.name})`,
+          context: { model, prompt, projectPath, instanceConfig, options }
         }
+      );
 
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+      return result;
+
+    } catch (error) {
+      console.error(`  🚫 ${model.name} failed after all retry attempts:`, error.message);
+      this.progressReporter.updateModelStatus(model.name, 'failed');
+
+      // Track failed models for performance analysis
+      if (this.trackingEnabled && this.debateMetrics) {
+        this.debateMetrics.failedModels.push(model.name);
       }
-    }
 
-    return null;
+      // If it's a RetryError, log additional details
+      if (error.name === 'RetryError') {
+        const details = error.getDetails();
+        console.error(`  📊 Retry details: ${details.attemptCount} attempts, error type: ${details.errorType}`);
+        console.error(`  💡 Failure reason: ${details.reason}`);
+
+        // Log retry statistics
+        const stats = this.retryHandler.getStats();
+        if (stats.totalAttempts > 0) {
+          console.error(`  📈 Retry stats: ${Math.round(stats.successRate * 100)}% success rate, avg ${stats.avgRetryCount.toFixed(1)} retries`);
+        }
+      }
+
+      return null;
+    }
   }
 
   /**
@@ -1455,6 +1487,40 @@ Provide specific improvements and enhancements.`;
       maxEntries: this.debateCache.maxEntries,
       minConfidence: this.cacheInvalidator.minConfidence
     });
+  }
+
+  /**
+   * Get retry handler statistics
+   * @returns {Object} Current retry statistics
+   */
+  getRetryStats() {
+    return {
+      handler: this.retryHandler.getStats(),
+      config: {
+        maxRetries: this.retryHandler.config.maxRetries,
+        initialDelay: this.retryHandler.config.initialDelay,
+        maxDelay: this.retryHandler.config.maxDelay,
+        backoffMultiplier: this.retryHandler.config.backoffMultiplier,
+        timeoutMs: this.retryHandler.config.timeoutMs
+      }
+    };
+  }
+
+  /**
+   * Reset retry statistics
+   */
+  resetRetryStats() {
+    this.retryHandler.resetStats();
+    console.log('🔄 Retry statistics reset');
+  }
+
+  /**
+   * Update retry configuration
+   * @param {Object} newConfig - New retry configuration options
+   */
+  configureRetry(newConfig = {}) {
+    this.retryHandler.updateConfig(newConfig);
+    console.log('🔄 Retry configuration updated:', newConfig);
   }
 }
 
