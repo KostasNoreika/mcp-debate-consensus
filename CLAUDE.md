@@ -7,7 +7,7 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
 ## 🛑 CRITICAL RULES - NEVER VIOLATE 🛑
 
 1. **NEVER CHANGE MODEL CONFIGURATIONS**: The k1-k5 model aliases are FIXED and must NEVER be changed unless explicitly requested:
-   - k1: `anthropic/claude-opus-4.1` - Architecture and system design
+   - k1: `anthropic/claude-sonnet-4.5` - Architecture and system design
    - k2: `openai/gpt-5` - Testing strategies and debugging
    - k3: `qwen/qwen3-max` - Algorithm optimization
    - k4: `google/gemini-2.5-pro` - Integration and completeness
