@@ -13,14 +13,18 @@
     "weaknesses": [
       "speed",
       "cost",
-      "tech/programming/architecture"
+      "tech/programming/architecture",
+      "general",
+      "tech/programming/testing"
     ],
     "winRate": {
       "tech/code": 0,
       "education/explain": 1,
       "math/calculation": 0,
       "business/strategy": 1,
-      "tech/programming/architecture": 0
+      "tech/programming/architecture": 0,
+      "general": 0,
+      "tech/programming/testing": 0
     },
     "categoryPerformance": {
       "tech/code": {
@@ -48,17 +52,29 @@
         "avgScore": 0.85
       },
       "tech/programming/architecture": {
-        "debates": 2,
+        "debates": 5,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
+      },
+      "general": {
+        "debates": 3,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
+      },
+      "tech/programming/testing": {
+        "debates": 1,
         "wins": 0,
         "totalScore": 0,
         "avgScore": 0
       }
     },
-    "totalDebates": 6,
+    "totalDebates": 13,
     "totalWins": 2,
     "avgResponseTime": 44375,
     "costEfficiency": 0.3,
-    "lastUpdated": 1758703772639,
+    "lastUpdated": 1759142303627,
     "specializations": [],
     "performanceTrends": [
       {
@@ -102,6 +118,55 @@
         "score": 0,
         "won": false,
         "responseTime": 0
+      },
+      {
+        "timestamp": 1758957039215,
+        "category": "general",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1758961746616,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1758976165100,
+        "category": "general",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1758992563926,
+        "category": "general",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759072475288,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759091631292,
+        "category": "tech/programming/testing",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759142303627,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
       }
     ]
   },
@@ -116,7 +181,8 @@
     "weaknesses": [
       "creativity",
       "open_ended",
-      "tech/programming/architecture"
+      "tech/programming/architecture",
+      "tech/programming/testing"
     ],
     "winRate": {
       "tech/debug": 0,
@@ -124,7 +190,8 @@
       "education/explain": 0,
       "math/calculation": 0,
       "business/strategy": 0,
-      "tech/programming/architecture": 0
+      "tech/programming/architecture": 0,
+      "tech/programming/testing": 0
     },
     "categoryPerformance": {
       "tech/debug": {
@@ -158,17 +225,23 @@
         "avgScore": 0.7
       },
       "tech/programming/architecture": {
-        "debates": 2,
+        "debates": 5,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
+      },
+      "tech/programming/testing": {
+        "debates": 1,
         "wins": 0,
         "totalScore": 0,
         "avgScore": 0
       }
     },
-    "totalDebates": 7,
+    "totalDebates": 11,
     "totalWins": 0,
     "avgResponseTime": 27375,
     "costEfficiency": 0.6,
-    "lastUpdated": 1758703772640,
+    "lastUpdated": 1759142303627,
     "specializations": [],
     "performanceTrends": [
       {
@@ -215,6 +288,34 @@
       },
       {
         "timestamp": 1758703772639,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1758961746616,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759072475288,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759091631292,
+        "category": "tech/programming/testing",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759142303627,
         "category": "tech/programming/architecture",
         "score": 0,
         "won": false,
@@ -299,7 +400,8 @@
       "multimodal"
     ],
     "weaknesses": [
-      "specialized_domains"
+      "specialized_domains",
+      "tech/programming/architecture"
     ],
     "winRate": {
       "education/explain": 0,
@@ -320,17 +422,17 @@
         "avgScore": 0.8
       },
       "tech/programming/architecture": {
-        "debates": 2,
+        "debates": 5,
         "wins": 0,
         "totalScore": 0,
         "avgScore": 0
       }
     },
-    "totalDebates": 4,
+    "totalDebates": 7,
     "totalWins": 0,
     "avgResponseTime": 35000,
     "costEfficiency": 0.7,
-    "lastUpdated": 1758703772639,
+    "lastUpdated": 1759142303627,
     "specializations": [],
     "performanceTrends": [
       {
@@ -360,6 +462,27 @@
         "score": 0,
         "won": false,
         "responseTime": 0
+      },
+      {
+        "timestamp": 1758961746616,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759072475288,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
+      },
+      {
+        "timestamp": 1759142303627,
+        "category": "tech/programming/architecture",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
       }
     ]
   },
@@ -377,7 +500,8 @@
       "long_form_content"
     ],
     "winRate": {
-      "tech/debug": 1
+      "tech/debug": 1,
+      "tech/programming/testing": 0
     },
     "categoryPerformance": {
       "tech/debug": {
@@ -385,13 +509,19 @@
         "wins": 1,
         "totalScore": 0.9,
         "avgScore": 0.9
+      },
+      "tech/programming/testing": {
+        "debates": 1,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
       }
     },
-    "totalDebates": 1,
+    "totalDebates": 2,
     "totalWins": 1,
     "avgResponseTime": 15000,
     "costEfficiency": 0.9,
-    "lastUpdated": 1758565044763,
+    "lastUpdated": 1759091631292,
     "specializations": [],
     "performanceTrends": [
       {
@@ -400,6 +530,13 @@
         "score": 0.9,
         "won": true,
         "responseTime": 15000
+      },
+      {
+        "timestamp": 1759091631292,
+        "category": "tech/programming/testing",
+        "score": 0,
+        "won": false,
+        "responseTime": 0
       }
     ]
   }

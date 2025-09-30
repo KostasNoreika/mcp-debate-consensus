@@ -237,17 +237,22 @@ export class LearningSystem {
       learningProgress: await this.getLearningProgress()
     };
 
-    // Save report
-    const reportPath = path.join(this.reportsDir, `learning-report-${Date.now()}.json`);
-    await fs.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
+    try {
+      // Save report
+      const reportPath = path.join(this.reportsDir, `learning-report-${Date.now()}.json`);
+      await fs.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
 
-    // Generate human-readable summary
-    const summaryPath = path.join(this.reportsDir, `learning-summary-${Date.now()}.md`);
-    const summary = this.formatReportSummary(report);
-    await fs.writeFile(summaryPath, summary, 'utf8');
+      // Generate human-readable summary
+      const summaryPath = path.join(this.reportsDir, `learning-summary-${Date.now()}.md`);
+      const summary = this.formatReportSummary(report);
+      await fs.writeFile(summaryPath, summary, 'utf8');
 
-    console.log(`📋 Comprehensive report saved: ${reportPath}`);
-    console.log(`📄 Summary saved: ${summaryPath}`);
+      console.log(`📋 Comprehensive report saved: ${reportPath}`);
+      console.log(`📄 Summary saved: ${summaryPath}`);
+    } catch (error) {
+      console.error('❌ Failed to save report files:', error.message);
+      // Don't add error to report - just log it
+    }
 
     return report;
   }
@@ -625,5 +630,245 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
     await this.optimizer.initialize();
 
     console.log('✅ Learning data reset complete');
+  }
+
+  /**
+   * Get model recommendations based on learning context
+   * @param {Object} context - Context for model selection
+   * @returns {Array} Array of model recommendations
+   */
+  async getModelRecommendations(context) {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return [
+        { model: 'k1', confidence: 0.5 },
+        { model: 'k2', confidence: 0.5 },
+        { model: 'k4', confidence: 0.5 }
+      ];
+    }
+
+    try {
+      // Use the optimizer to get recommendations
+      const optimization = await this.optimizer.optimizeSelection(context.category || 'general', context);
+      return optimization.models || [];
+    } catch (error) {
+      console.warn('Failed to get model recommendations:', error.message);
+      return [
+        { model: 'k1', confidence: 0.5 },
+        { model: 'k2', confidence: 0.5 },
+        { model: 'k4', confidence: 0.5 }
+      ];
+    }
+  }
+
+  /**
+   * Learn from debate outcomes
+   * @param {Array} outcomes - Array of debate outcomes
+   */
+  async learnFromOutcomes(outcomes) {
+    if (!this.learningEnabled || !this.isInitialized) return;
+
+    for (const outcome of outcomes) {
+      try {
+        await this.modelProfiler.updateAfterDebate(outcome);
+      } catch (error) {
+        console.warn('Error learning from outcome:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Predict debate quality for given parameters
+   * @param {Object} params - Debate parameters
+   * @returns {Object} Quality prediction
+   */
+  async predictDebateQuality(params) {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return {
+        expectedConfidence: 0.7,
+        riskFactors: ['Learning system not available']
+      };
+    }
+
+    // Calculate expected confidence based on model selection and question complexity
+    let expectedConfidence = 0.7; // Base confidence
+
+    if (params.selectedModels && params.selectedModels.length >= 3) {
+      expectedConfidence += 0.1; // Bonus for multiple models
+    }
+
+    if (params.complexity < 0.5) {
+      expectedConfidence += 0.1; // Bonus for simpler questions
+    } else if (params.complexity > 0.8) {
+      expectedConfidence -= 0.1; // Penalty for very complex questions
+    }
+
+    const riskFactors = [];
+    if (params.selectedModels && params.selectedModels.length < 3) {
+      riskFactors.push('Insufficient model diversity');
+    }
+    if (params.complexity > 0.8) {
+      riskFactors.push('High complexity question');
+    }
+
+    return {
+      expectedConfidence: Math.max(0.1, Math.min(1.0, expectedConfidence)),
+      riskFactors
+    };
+  }
+
+  /**
+   * Detect performance regressions
+   * @returns {Object} Regression analysis
+   */
+  async detectRegressions() {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return {
+        detected: false,
+        severity: 'none'
+      };
+    }
+
+    try {
+      const trends = this.modelProfiler.analyzeModelTrends();
+
+      return {
+        detected: trends.regression || false,
+        severity: trends.regression ? 'medium' : 'none',
+        details: trends
+      };
+    } catch (error) {
+      console.warn('Error detecting regressions:', error.message);
+      return {
+        detected: false,
+        severity: 'none',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Analyze question patterns
+   * @returns {Object} Pattern analysis results
+   */
+  async analyzeQuestionPatterns() {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return { patterns: [], error: 'Learning system not available' };
+    }
+
+    try {
+      return await this.patternDetector.detectPatterns();
+    } catch (error) {
+      console.error('Error analyzing question patterns:', error.message);
+      return { patterns: [], error: error.message };
+    }
+  }
+
+  /**
+   * Analyze model performance
+   * @returns {Object} Model performance analysis
+   */
+  async analyzeModelPerformance() {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return { accuracy: 0.7, speed: 0.8 };
+    }
+
+    try {
+      return this.modelProfiler.getModelPerformance();
+    } catch (error) {
+      console.error('Error analyzing model performance:', error.message);
+      return { accuracy: 0.7, speed: 0.8, error: error.message };
+    }
+  }
+
+  /**
+   * Generate optimizations
+   * @returns {Object} Optimization suggestions
+   */
+  async generateOptimizations() {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return { suggestions: [] };
+    }
+
+    try {
+      return await this.optimizer.generateOptimizations();
+    } catch (error) {
+      console.error('Error generating optimizations:', error.message);
+      return { suggestions: [], error: error.message };
+    }
+  }
+
+  /**
+   * Apply optimization with confidence check
+   * @param {Object} optimization - Optimization to apply
+   * @returns {Object} Application result
+   */
+  async applyOptimization(optimization) {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return { applied: false, reason: 'Learning system not available' };
+    }
+
+    if (optimization.confidence < this.config.confidenceThreshold) {
+      return {
+        applied: false,
+        reason: `Confidence too low: ${optimization.confidence} < ${this.config.confidenceThreshold}`
+      };
+    }
+
+    try {
+      await this.optimizer.applyOptimization(optimization);
+      this.stats.optimizationsApplied++;
+      await this.saveStats();
+      return { applied: true };
+    } catch (error) {
+      console.error('Error applying optimization:', error.message);
+      return { applied: false, error: error.message };
+    }
+  }
+
+  /**
+   * Check learning convergence
+   * @returns {Object} Convergence status
+   */
+  async checkConvergence() {
+    if (!this.learningEnabled || !this.isInitialized) {
+      return { converged: false, stability: 0.5 };
+    }
+
+    try {
+      const trends = this.modelProfiler.analyzeModelTrends();
+      const converged = !trends.improving && trends.stability > 0.9;
+
+      return {
+        converged,
+        stability: trends.stability,
+        improving: trends.improving,
+        variance: trends.variance || 0.1
+      };
+    } catch (error) {
+      console.error('Error checking convergence:', error.message);
+      return { converged: false, stability: 0.5, error: error.message };
+    }
+  }
+
+  /**
+   * Get convergence recommendations
+   * @returns {Array} Array of recommendation strings
+   */
+  async getConvergenceRecommendations() {
+    const convergence = await this.checkConvergence();
+    const recommendations = [];
+
+    if (convergence.converged) {
+      recommendations.push('System has converged to stable performance');
+      recommendations.push('Consider reducing learning rate to maintain stability');
+    } else if (convergence.improving) {
+      recommendations.push('System is still improving');
+      recommendations.push('Continue current learning strategy');
+    } else {
+      recommendations.push('System performance appears unstable');
+      recommendations.push('Consider adjusting learning parameters');
+    }
+
+    return recommendations;
   }
 }

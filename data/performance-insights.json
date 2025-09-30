@@ -1,15 +1,6 @@
 {
-  "timestamp": 1758703772640,
+  "timestamp": 1759142303627,
   "modelRankings": [
-    {
-      "id": "k5",
-      "name": "Grok 4 Fast",
-      "winRate": 1,
-      "totalDebates": 1,
-      "avgScore": 0.96,
-      "costEfficiency": 0.9,
-      "avgResponseTime": 15000
-    },
     {
       "id": "k3",
       "name": "Qwen 3 Max",
@@ -20,11 +11,20 @@
       "avgResponseTime": 21500
     },
     {
+      "id": "k5",
+      "name": "Grok 4 Fast",
+      "winRate": 0.5,
+      "totalDebates": 2,
+      "avgScore": 0.66,
+      "costEfficiency": 0.9,
+      "avgResponseTime": 15000
+    },
+    {
       "id": "k1",
       "name": "Claude Opus 4.1",
-      "winRate": 0.3333333333333333,
-      "totalDebates": 6,
-      "avgScore": 0.525,
+      "winRate": 0.15384615384615385,
+      "totalDebates": 13,
+      "avgScore": 0.4173076923076924,
       "costEfficiency": 0.3,
       "avgResponseTime": 44375
     },
@@ -32,7 +32,7 @@
       "id": "k4",
       "name": "Gemini 2.5 Pro",
       "winRate": 0,
-      "totalDebates": 4,
+      "totalDebates": 7,
       "avgScore": 0.31000000000000005,
       "costEfficiency": 0.7,
       "avgResponseTime": 35000
@@ -41,7 +41,7 @@
       "id": "k2",
       "name": "GPT-5",
       "winRate": 0,
-      "totalDebates": 7,
+      "totalDebates": 11,
       "avgScore": 0.284,
       "costEfficiency": 0.6,
       "avgResponseTime": 27375
@@ -52,7 +52,17 @@
       "id": "k1",
       "name": "Claude Opus 4.1",
       "performance": {
-        "debates": 2,
+        "debates": 5,
+        "wins": 0,
+        "totalScore": 0,
+        "avgScore": 0
+      }
+    },
+    "general": {
+      "id": "k1",
+      "name": "Claude Opus 4.1",
+      "performance": {
+        "debates": 3,
         "wins": 0,
         "totalScore": 0,
         "avgScore": 0
@@ -62,14 +72,28 @@
   "performanceAlerts": [
     {
       "type": "low_performance",
+      "modelId": "k1",
+      "message": "Claude Opus 4.1 has low win rate: 15.4%"
+    },
+    {
+      "type": "low_performance",
       "modelId": "k2",
       "message": "GPT-5 has low win rate: 0.0%"
+    },
+    {
+      "type": "low_performance",
+      "modelId": "k4",
+      "message": "Gemini 2.5 Pro has low win rate: 0.0%"
     }
   ],
   "recommendations": [
     {
       "type": "model_selection",
-      "message": "Consider using Grok 4 Fast more frequently (current win rate: 100.0%)"
+      "message": "Consider using Qwen 3 Max more frequently (current win rate: 66.7%)"
+    },
+    {
+      "type": "model_review",
+      "message": "Review usage of GPT-5 - consistently underperforming"
     }
   ]
 }

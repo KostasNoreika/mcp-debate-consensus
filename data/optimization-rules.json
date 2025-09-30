@@ -50,7 +50,9 @@
         "learned": 1758565044767
       }
     ],
-    "tech/programming/architecture": []
+    "tech/programming/architecture": [],
+    "general": [],
+    "tech/programming/testing": []
   },
   "costOptimizations": {},
   "performanceBoosts": {},
@@ -61,5 +63,5 @@
     "debates100": false,
     "debates500": false
   },
-  "lastUpdated": 1758703772641
+  "lastUpdated": 1759142303628
 }

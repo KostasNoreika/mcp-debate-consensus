@@ -1,0 +1,106 @@
+{
+  "server": {
+    "name": "debate-consensus-mcp-test",
+    "version": "2.1.0",
+    "port": 3001,
+    "host": "localhost"
+  },
+  "api": {
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1/chat/completions",
+      "maxRetries": 1,
+      "retryDelay": 100,
+      "defaultTemperature": 0.7,
+      "defaultMaxTokens": 1024,
+      "timeout": 10000
+    },
+    "anthropic": {
+      "baseUrl": "https://api.anthropic.com/v1/messages",
+      "maxRetries": 1,
+      "retryDelay": 100,
+      "defaultTemperature": 0.7,
+      "defaultMaxTokens": 1024,
+      "timeout": 10000
+    }
+  },
+  "models": {
+    "claude": {
+      "id": "claude-test-model",
+      "name": "Claude Test",
+      "provider": "cli",
+      "capabilities": ["architecture", "synthesis", "planning"],
+      "maxTokens": 1024,
+      "temperature": 0.7
+    },
+    "gpt5": {
+      "id": "openai/gpt-test-model",
+      "name": "GPT Test",
+      "provider": "openrouter",
+      "capabilities": ["testing", "debugging", "analysis"],
+      "maxTokens": 1024,
+      "temperature": 0.7
+    },
+    "qwen": {
+      "id": "qwen/qwen-test-model",
+      "name": "Qwen Test",
+      "provider": "openrouter",
+      "capabilities": ["algorithms", "optimization", "coding"],
+      "maxTokens": 1024,
+      "temperature": 0.7
+    },
+    "gemini": {
+      "id": "google/gemini-test-model",
+      "name": "Gemini Test",
+      "provider": "openrouter",
+      "capabilities": ["integration", "completeness", "reasoning"],
+      "maxTokens": 1024,
+      "temperature": 0.7
+    }
+  },
+  "debate": {
+    "maxRounds": 2,
+    "minParticipants": 2,
+    "maxParticipants": 3,
+    "consensusThreshold": 0.7,
+    "timeoutMs": 30000
+  },
+  "logging": {
+    "level": "error",
+    "format": "simple",
+    "directory": "./logs",
+    "maxFiles": 2,
+    "maxSize": "1mb"
+  },
+  "features": {
+    "history": false,
+    "logging": false,
+    "validation": false,
+    "caching": false,
+    "metrics": false,
+    "telemetry": false,
+    "learning": false
+  },
+  "security": {
+    "rateLimiting": {
+      "enabled": false,
+      "windowMs": 60000,
+      "maxRequests": 100
+    },
+    "cors": {
+      "enabled": false,
+      "origins": ["http://localhost:3001"]
+    },
+    "hmac": {
+      "enabled": false
+    }
+  },
+  "cache": {
+    "enabled": false,
+    "maxSize": 10,
+    "ttl": 300
+  },
+  "performance": {
+    "tracking": false,
+    "database": ":memory:"
+  }
+}

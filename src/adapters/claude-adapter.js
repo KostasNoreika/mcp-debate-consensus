@@ -12,7 +12,7 @@ class ClaudeAdapter extends BaseAdapter {
   constructor(config = {}) {
     super({
       name: 'ClaudeAdapter',
-      cliPath: config.cliPath || 'claude',
+      cliPath: config.cliPath || ClaudeAdapter.findClaudeCLI(),
       ...config
     });
 
@@ -34,6 +34,11 @@ class ClaudeAdapter extends BaseAdapter {
    */
   async detectCapabilities() {
     try {
+      // Skip detection in test environment
+      if (this.isTestEnvironment()) {
+        return this.capabilities;
+      }
+
       // Guard against missing process in test environment
       if (typeof process === 'undefined') {
         return this.capabilities;
@@ -50,7 +55,10 @@ class ClaudeAdapter extends BaseAdapter {
 
       return this.capabilities;
     } catch (error) {
-      console.warn(`Failed to detect Claude capabilities: ${error.message}`);
+      // Only warn if not in test environment
+      if (!this.isTestEnvironment()) {
+        console.warn(`Failed to detect Claude capabilities: ${error.message}`);
+      }
       return this.capabilities;
     }
   }
@@ -251,6 +259,43 @@ class ClaudeAdapter extends BaseAdapter {
     info.mcpEnabled = this.capabilities.mcp && Object.keys(this.mcpServers).length > 0;
     info.contextWindow = this.capabilities.contextWindow;
     return info;
+  }
+
+  /**
+   * Static method to find Claude CLI
+   */
+  static findClaudeCLI() {
+    // Common paths where Claude CLI might be installed
+    const commonPaths = [
+      'claude',
+      '/usr/local/bin/claude',
+      '/opt/homebrew/bin/claude',
+      path.join(os.homedir(), '.local/bin/claude'),
+      path.join(os.homedir(), 'bin/claude')
+    ];
+
+    // Skip path finding in test environment
+    if (typeof process !== 'undefined' && (
+      process.env.NODE_ENV === 'test' ||
+      process.env.JEST_WORKER_ID !== undefined ||
+      typeof jest !== 'undefined'
+    )) {
+      return 'claude';
+    }
+
+    for (const testPath of commonPaths) {
+      if (testPath === 'claude') {
+        // This will be resolved by base adapter's PATH search
+        continue;
+      }
+
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+
+    // Default to command name, will be resolved by PATH search
+    return 'claude';
   }
 }
 
