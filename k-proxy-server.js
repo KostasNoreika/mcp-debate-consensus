@@ -45,7 +45,7 @@ const modelMap = {
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
   'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
   'k7': 'deepseek/deepseek-r1',         // Budget validator (DeepSeek R1 - MIT licensed)
-  'k8': 'z-ai/glm-4.5'                  // Open-source backup (GLM-4.5 - powerful MoE)
+  'k8': 'z-ai/glm-4.6'                  // Open-source backup (GLM-4.6 - powerful MoE)
 };
 
 // Conservative token limits for each model (for cost-effectiveness)
@@ -55,7 +55,7 @@ const maxTokensMap = {
   'k3': 16000,   // Qwen 3 Max (max: 32k)
   'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
   'k7': 8000,    // DeepSeek R1 (conservative for cost)
-  'k8': 8000     // GLM-4.5 (conservative for cost)
+  'k8': 12000    // GLM-4.6 (increased for 200K context)
 };
 
 // Port mapping for each k instance
@@ -371,7 +371,7 @@ console.log('k2 (GPT-5):              http://localhost:3458');
 console.log('k3 (Qwen 3 Max):         http://localhost:3459');
 console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460');
 console.log('k7 (DeepSeek R1):        http://localhost:3463');
-console.log('k8 (GLM-4.5):            http://localhost:3464');
+console.log('k8 (GLM-4.6):            http://localhost:3464');
 console.log(`\nTimeout: ${DEBATE_TIMEOUT_MINUTES} minutes per request (configurable via DEBATE_TIMEOUT_MINUTES env var)`);
 console.log('Security Features: Request signing, Rate limiting, Security headers, Audit logging');
 console.log('Press Ctrl+C to stop all proxies\n');

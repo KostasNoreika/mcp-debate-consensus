@@ -13,7 +13,7 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
    - k4: `google/gemini-2.5-pro` - Integration and completeness
    - k5: `x-ai/grok-4-fast:free` - Fast reasoning and coding
    - k7: `deepseek/r1` - Deep analytical reasoning
-   - k8: `zhipuai/glm-4.5` - Chinese AI perspective
+   - k8: `z-ai/glm-4.6` - Chinese AI perspective
 
 2. **DO NOT suggest model alternatives** - these models were specifically chosen by the user.
 
