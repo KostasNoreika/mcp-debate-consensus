@@ -44,6 +44,7 @@ const modelMap = {
   'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
   'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
+  'k5': 'x-ai/grok-4-fast:free',        // Fast reasoning (Grok 4 Fast - free tier)
   'k7': 'deepseek/deepseek-r1',         // Budget validator (DeepSeek R1 - MIT licensed)
   'k8': 'z-ai/glm-4.5'                  // Open-source backup (GLM-4.5 - powerful MoE)
 };
@@ -54,6 +55,7 @@ const maxTokensMap = {
   'k2': 32000,   // GPT-5 (max: 128k!)
   'k3': 16000,   // Qwen 3 Max (max: 32k)
   'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
+  'k5': 8000,    // Grok 4 Fast (free tier - conservative)
   'k7': 8000,    // DeepSeek R1 (conservative for cost)
   'k8': 8000     // GLM-4.5 (conservative for cost)
 };
@@ -64,6 +66,7 @@ const portMap = {
   'k2': 3458,
   'k3': 3459,
   'k4': 3460,
+  'k5': 3461,
   'k7': 3463,
   'k8': 3464
 };

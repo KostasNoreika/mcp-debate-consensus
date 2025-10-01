@@ -149,26 +149,52 @@ class HealthCheck {
   }
 
   async checkProxyServer() {
-    const ports = [3457, 3458, 3459, 3460];
-    let anyRunning = false;
-    
-    for (const port of ports) {
-      const isRunning = await this.checkPort(port);
+    // All 7 proxy servers with their ports and model aliases
+    const proxyServers = [
+      { alias: 'k1', port: 3457, model: 'Claude Sonnet 4.5' },
+      { alias: 'k2', port: 3458, model: 'GPT-5' },
+      { alias: 'k3', port: 3459, model: 'Qwen 3 Max' },
+      { alias: 'k4', port: 3460, model: 'Gemini 2.5 Pro' },
+      { alias: 'k5', port: 3461, model: 'Grok 4 Fast' },
+      { alias: 'k7', port: 3463, model: 'DeepSeek R1' },
+      { alias: 'k8', port: 3464, model: 'GLM-4.5' }
+    ];
+
+    let runningCount = 0;
+    const failedServers = [];
+
+    for (const server of proxyServers) {
+      const isRunning = await this.checkPort(server.port);
       if (isRunning) {
-        anyRunning = true;
-        this.log(`  - k${ports.indexOf(port) + 1} proxy on port ${port} ✓`, 'success');
+        runningCount++;
+        this.log(`  - ${server.alias} (${server.model}) on port ${server.port} ✓`, 'success');
       } else {
-        this.log(`  - k${ports.indexOf(port) + 1} proxy on port ${port} ✗`, 'warning');
+        failedServers.push(server);
+        this.log(`  - ${server.alias} (${server.model}) on port ${server.port} ✗`, 'warning');
       }
     }
-    
-    if (anyRunning) {
-      this.results.passed.push('Proxy servers running');
-      this.log('At least one proxy server is running ✓', 'success');
+
+    if (runningCount === proxyServers.length) {
+      this.results.passed.push('All 7 proxy servers running');
+      this.log(`All ${proxyServers.length} proxy servers running ✓`, 'success');
+      return true;
+    } else if (runningCount > 0) {
+      this.results.warnings.push(`Only ${runningCount}/${proxyServers.length} proxy servers running`);
+      this.log(`${runningCount}/${proxyServers.length} proxy servers running`, 'warning');
+      this.log('Missing servers: ' + failedServers.map(s => `${s.alias} (${s.port})`).join(', '), 'warning');
       return true;
     } else {
       this.results.warnings.push('No proxy servers running');
-      this.log('No proxy servers running. Run: node k-proxy-server.js', 'warning');
+      this.log('❌ No proxy servers detected!', 'error');
+      this.log('', 'info');
+      this.log('Possible causes:', 'warning');
+      this.log('  1. k-proxy-server.js not started', 'info');
+      this.log('  2. Server crashed during startup', 'info');
+      this.log('  3. Ports already in use (check: lsof -i :3457-3464)', 'info');
+      this.log('  4. Missing OPENROUTER_API_KEY in .env', 'info');
+      this.log('', 'info');
+      this.log('To start: node k-proxy-server.js', 'warning');
+      this.log('To debug: ps aux | grep k-proxy-server', 'info');
       return false;
     }
   }
@@ -224,35 +250,45 @@ class HealthCheck {
   }
 
   async checkWrapperScripts() {
-    const wrappers = ['k1-wrapper.sh', 'k2-wrapper.sh', 'k3-wrapper.sh', 'k4-wrapper.sh'];
+    const wrappers = [
+      'k1-wrapper.sh', 'k2-wrapper.sh', 'k3-wrapper.sh',
+      'k4-wrapper.sh', 'k5-wrapper.sh', 'k7-wrapper.sh', 'k8-wrapper.sh'
+    ];
     let allFound = true;
-    
+    const missingWrappers = [];
+
     for (const wrapper of wrappers) {
       try {
         await fs.access(wrapper, fsSync.constants.R_OK);
         this.log(`  - ${wrapper} ✓`, 'success');
       } catch {
         allFound = false;
+        missingWrappers.push(wrapper);
         this.log(`  - ${wrapper} ✗`, 'error');
       }
     }
-    
+
     if (allFound) {
-      this.results.passed.push('Wrapper scripts found');
-      this.log('All wrapper scripts found ✓', 'success');
+      this.results.passed.push('All 7 wrapper scripts found');
+      this.log('All 7 wrapper scripts found ✓', 'success');
       return true;
     } else {
       this.results.failed.push('Missing wrapper scripts');
-      this.log('Some wrapper scripts missing', 'error');
+      this.log(`Missing wrappers: ${missingWrappers.join(', ')}`, 'error');
+      this.log('Run: node install.js to regenerate missing wrappers', 'warning');
       return false;
     }
   }
 
   async checkConfigDirs() {
     const homeDir = os.homedir();
-    const configs = ['.claude-k1', '.claude-k2', '.claude-k3', '.claude-k4'];
+    const configs = [
+      '.claude-k1', '.claude-k2', '.claude-k3',
+      '.claude-k4', '.claude-k5', '.claude-k7', '.claude-k8'
+    ];
     let allFound = true;
-    
+    const missingConfigs = [];
+
     for (const config of configs) {
       const configPath = path.join(homeDir, config);
       try {
@@ -260,17 +296,19 @@ class HealthCheck {
         this.log(`  - ${config} ✓`, 'success');
       } catch {
         allFound = false;
+        missingConfigs.push(config);
         this.log(`  - ${config} ✗`, 'warning');
       }
     }
-    
+
     if (allFound) {
-      this.results.passed.push('Config directories found');
-      this.log('All config directories found ✓', 'success');
+      this.results.passed.push('All 7 config directories found');
+      this.log('All 7 config directories found ✓', 'success');
       return true;
     } else {
       this.results.warnings.push('Some config directories missing');
-      this.log('Some config directories missing (will be created on first run)', 'warning');
+      this.log(`Missing configs: ${missingConfigs.join(', ')}`, 'warning');
+      this.log('(Will be created automatically on first use)', 'info');
       return true; // Not critical
     }
   }

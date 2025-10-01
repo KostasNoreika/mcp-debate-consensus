@@ -5,7 +5,7 @@
 
 export MODEL_OVERRIDE=k5
 export ANTHROPIC_API_KEY="proxy-key-k5"
-export ANTHROPIC_BASE_URL="http://localhost:3456"
+export ANTHROPIC_BASE_URL="http://localhost:3461"
 
 # Execute the Claude CLI with all arguments passed through
 exec claude "$@"
