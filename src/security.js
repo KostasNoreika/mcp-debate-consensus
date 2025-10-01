@@ -613,6 +613,91 @@ class Security {
       }
     };
   }
+
+  /**
+   * Validate and sanitize question input
+   */
+  validateQuestion(question) {
+    if (!question || typeof question !== 'string') {
+      throw new Error('Question must be a non-empty string');
+    }
+
+    // Validate input
+    if (!this.validateInput(question)) {
+      throw new Error('Question contains invalid characters or patterns');
+    }
+
+    return question;
+  }
+
+  /**
+   * Validate and normalize project path
+   */
+  async validateProjectPath(projectPath) {
+    if (!projectPath) {
+      return process.cwd(); // Default to current directory
+    }
+
+    if (typeof projectPath !== 'string') {
+      throw new Error('Project path must be a string');
+    }
+
+    // Check for path traversal
+    if (this.PATH_TRAVERSAL_REGEX.test(projectPath)) {
+      throw new Error('Invalid project path: path traversal detected');
+    }
+
+    // Check length
+    if (projectPath.length > this.MAX_PATH_LENGTH) {
+      throw new Error(`Project path too long (max ${this.MAX_PATH_LENGTH} characters)`);
+    }
+
+    // Normalize path
+    const normalized = path.resolve(projectPath);
+
+    try {
+      // Check if path exists and is accessible
+      await fs.access(normalized);
+      return normalized;
+    } catch (error) {
+      // If path doesn't exist, return it anyway (might be created later)
+      return normalized;
+    }
+  }
+
+  /**
+   * Check rate limit for specific operation
+   */
+  checkRateLimit(operation, maxRequests = this.DEFAULT_RATE_LIMIT, windowMs = this.DEFAULT_RATE_WINDOW) {
+    const key = `operation:${operation}`;
+    const now = Date.now();
+
+    // Get or create rate limit data for this operation
+    let rateLimitData = this.rateLimitStore.get(key);
+
+    if (!rateLimitData) {
+      rateLimitData = {
+        requests: [],
+        firstRequest: now
+      };
+      this.rateLimitStore.set(key, rateLimitData);
+    }
+
+    // Remove old requests outside the window
+    rateLimitData.requests = rateLimitData.requests.filter(timestamp => now - timestamp < windowMs);
+
+    // Check if limit exceeded
+    if (rateLimitData.requests.length >= maxRequests) {
+      const oldestRequest = Math.min(...rateLimitData.requests);
+      const timeUntilReset = windowMs - (now - oldestRequest);
+      throw new Error(`Rate limit exceeded for ${operation}. Try again in ${Math.ceil(timeUntilReset / 1000)} seconds.`);
+    }
+
+    // Add current request
+    rateLimitData.requests.push(now);
+
+    return true;
+  }
 }
 
 export { Security };
