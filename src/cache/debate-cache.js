@@ -9,6 +9,7 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import logger from '../utils/logger.js';
 
 export class DebateCache {
   constructor(options = {}) {
@@ -143,7 +144,7 @@ export class DebateCache {
 
       return crypto.createHash('md5').update(fileStats.join('|')).digest('hex');
     } catch (error) {
-      console.warn('Failed to generate file context hash:', error.message);
+      logger.warn('Failed to generate file context hash', { error: error.message });
       return 'unknown';
     }
   }
@@ -160,7 +161,7 @@ export class DebateCache {
       await this.scanDirectory(projectPath, files, relevantExtensions, maxFiles);
       return files.slice(0, maxFiles);
     } catch (error) {
-      console.warn('Failed to scan directory for relevant files:', error.message);
+      logger.warn('Failed to scan directory for relevant files', { error: error.message, projectPath });
       return [];
     }
   }
@@ -313,7 +314,11 @@ export class DebateCache {
       await this.saveToPersistence();
     }
 
-    console.log(`💾 Cached debate result (key: ${key.substring(0, 8)}..., tokens: ${tokenCount}, cost: $${estimatedCost.toFixed(4)})`);
+    logger.debug('Cached debate result', {
+      keyPrefix: key.substring(0, 8),
+      tokens: tokenCount,
+      cost: `$${estimatedCost.toFixed(4)}`
+    });
   }
 
   /**
@@ -360,7 +365,7 @@ export class DebateCache {
     const entriesCleared = this.cache.size;
     this.cache.clear();
     this.keyMetadata.clear();
-    console.log(`🗑️ Cleared ${entriesCleared} cache entries`);
+    logger.info('Cache cleared', { entriesCleared });
   }
 
   /**
@@ -433,10 +438,10 @@ export class DebateCache {
         ...persistedData.stats
       };
 
-      console.log(`📂 Loaded ${this.cache.size} cache entries from persistence`);
+      logger.info('Loaded cache from persistence', { entries: this.cache.size });
     } catch (error) {
       // File doesn't exist or is corrupted, start fresh
-      console.log('🆕 Starting with fresh cache (no persistence file found)');
+      logger.info('Starting with fresh cache', { reason: 'no persistence file found' });
     }
   }
 
@@ -457,7 +462,7 @@ export class DebateCache {
 
       await fs.writeFile(this.persistencePath, JSON.stringify(persistData, null, 2));
     } catch (error) {
-      console.warn('Failed to save cache to persistence:', error.message);
+      logger.warn('Failed to save cache to persistence', { error: error.message });
     }
   }
 
@@ -477,7 +482,7 @@ export class DebateCache {
 
     if (invalidatedCount > 0) {
       this.stats.invalidations += invalidatedCount;
-      console.log(`🔄 Invalidated ${invalidatedCount} cache entries due to context changes`);
+      logger.info('Invalidated cache entries by context', { count: invalidatedCount });
     }
 
     return invalidatedCount;
@@ -502,7 +507,7 @@ export class DebateCache {
 
     if (invalidatedCount > 0) {
       this.stats.invalidations += invalidatedCount;
-      console.log(`🔄 Invalidated ${invalidatedCount} cache entries for category: ${category}`);
+      logger.info('Invalidated cache entries by category', { category, count: invalidatedCount });
     }
 
     return invalidatedCount;
@@ -523,7 +528,7 @@ export class DebateCache {
 
     if (invalidatedCount > 0) {
       this.stats.invalidations += invalidatedCount;
-      console.log(`🔄 Invalidated ${invalidatedCount} cache entries matching pattern`);
+      logger.info('Invalidated cache entries by pattern', { count: invalidatedCount });
     }
 
     return invalidatedCount;
@@ -568,7 +573,7 @@ export class DebateCache {
    * Warm cache with common questions
    */
   async warmCache(questions, options = {}) {
-    console.log(`🔥 Warming cache with ${questions.length} questions...`);
+    logger.info('Warming cache', { questionCount: questions.length });
     const results = [];
 
     for (const question of questions) {
@@ -576,9 +581,9 @@ export class DebateCache {
         // This would be called from the main debate orchestrator
         // const result = await debateOrchestrator.runDebate(question, options);
         // results.push(result);
-        console.log(`🔥 Cache warming for: ${question.substring(0, 50)}...`);
+        logger.debug('Cache warming for question', { questionPrefix: question.substring(0, 50) });
       } catch (error) {
-        console.warn(`Failed to warm cache for question: ${error.message}`);
+        logger.warn('Failed to warm cache for question', { error: error.message });
       }
     }
 
