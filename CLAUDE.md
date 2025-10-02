@@ -1,253 +1,385 @@
-# CLAUDE.md - AI Expert Consensus v2.1 🏆 ENTERPRISE PRODUCTION READY
+# CLAUDE.md
 
-**🎉 MASSIVE ACHIEVEMENT: 96% Test Reliability Improvement (279/283 tests passing)**
+This file provides guidance to Claude Code (claude.ai/code) when working with the AI Expert Consensus MCP server codebase.
 
-This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with the AI Expert Consensus MCP server codebase. The system has achieved enterprise-grade stability with comprehensive testing, security, and monitoring capabilities.
+## 🛑 CRITICAL RULES
 
-## 🛑 CRITICAL RULES - NEVER VIOLATE 🛑
-
-1. **NEVER CHANGE MODEL CONFIGURATIONS**: The k1-k5 model aliases are FIXED and must NEVER be changed unless explicitly requested:
+1. **NEVER CHANGE MODEL CONFIGURATIONS** without explicit user request:
    - k1: `anthropic/claude-sonnet-4.5` - Architecture and system design
    - k2: `openai/gpt-5` - Testing strategies and debugging
    - k3: `qwen/qwen3-max` - Algorithm optimization
    - k4: `google/gemini-2.5-pro` - Integration and completeness
    - k5: `x-ai/grok-4-fast:free` - Fast reasoning and coding
-   - k7: `deepseek/r1` - Deep analytical reasoning
+   - k7: `deepseek/deepseek-r1` - Deep analytical reasoning
    - k8: `z-ai/glm-4.5` - Chinese AI perspective
 
-2. **DO NOT suggest model alternatives** - these models were specifically chosen by the user.
+2. **DO NOT suggest model alternatives** - these were specifically chosen
+3. **If models return 404 errors**, fix naming/format but NEVER switch models
 
-3. **If models return 404 errors**, fix the naming/format but NEVER switch to a different model.
+## Essential Commands
 
-## Commands
-
-### Essential Setup & Running
+### Setup & Starting Services
 ```bash
-# Initial setup (one-time)
-node install.js                # Automated setup script
-cp .env.example .env           # Create config (add OPENROUTER_API_KEY)
+# One-time setup
+node install.js                # Automated installer
+cp .env.example .env          # Create config (add OPENROUTER_API_KEY)
 
 # Start services (REQUIRED before use)
-node k-proxy-server.js &       # Start proxy server on ports 3457-3464
-npm start                      # Start MCP server
+node k-proxy-server.js &      # Proxy servers (ports 3457-3464)
+npm start                     # MCP server
 
-# Health check
-node health-check.js           # Verify system is ready
+# Health verification
+node health-check.js          # Comprehensive system check
 ```
 
-### Testing (96% Success Rate - Enterprise Grade)
+### Testing (98.5% Success Rate - 279/283 passing)
 ```bash
-npm test                       # Run all 283 tests (279 passed, 4 failed = 98.5% success)
-npm run test:models            # Test debate consensus mechanism
-npm run test:mcp              # Test MCP client directly
-npm run test:confidence       # Test confidence scoring system
-npm run test:cache           # Test smart caching (90% cost reduction)
-npm run test:performance     # Test performance tracking database
-npm run test:security         # Test enterprise security features
-npm run test:retry           # Test exponential backoff retry system
-npm run test:client          # Test HMAC client authentication
-npm run test:learning        # Test ML learning system
-npm run test:all             # Run comprehensive 283-test suite
+# Full test suite
+npm test                      # All 283 tests
+
+# Component testing
+npm run test:security         # Enterprise security features
+npm run test:retry           # Exponential backoff retry
+npm run test:performance     # Performance tracking
+npm run test:confidence      # Confidence scoring
+npm run test:cache          # Smart caching
+npm run test:learning       # ML learning system
 
 # Direct testing
-node test-debate.js "Your question"      # Test debate directly
-node test-telemetry-failure.js           # Test telemetry graceful failure
-node test-security.js                    # Test security features
-node test-retry-functionality.js         # Test retry functionality
-node test-retry-integration.js           # Test retry integration
+node test-debate.js "question"    # Test debate directly
+npm run test:all                  # Security + full suite
 ```
 
-### Learning System Management
+### Development
 ```bash
-npm run learning:status       # Check learning system metrics
-npm run learning:report      # Generate comprehensive performance report
-npm run learning:reset       # Reset all learning data (use carefully!)
-```
-
-### Security Management
-```bash
-npm run security:generate-secret    # Generate secure HMAC secret
-npm run security:test              # Test security implementation
-npm run security:status           # Check security configuration
-```
-
-### Development & Debugging
-```bash
-npm run dev                  # Development mode with verbose logging
+npm run dev                  # Development mode (verbose)
 npm run validate            # Validate configuration
-npm run config:show        # Display current configuration
-npm run config:check        # Check environment configuration
-npm run clean             # Clean logs, cache, coverage
+npm run config:show         # Display current config
+npm run clean              # Clean logs/cache/coverage
 ```
 
-## Architecture
+### Security & Learning
+```bash
+# Security
+npm run security:generate-secret  # Generate HMAC secret
+npm run test:security            # Test security
+npm run security:status         # Check config
 
-### Core System Flow
+# Learning System
+npm run learning:status     # Check metrics
+npm run learning:report     # Performance report
+npm run learning:reset      # Reset data (careful!)
+```
 
-1. **MCP Request Entry** (`index.js`)
-   - Receives debate tool calls via MCP protocol
-   - Auto-starts k-proxy-server if not running
-   - Routes to appropriate debate orchestrator
+## Architecture Overview
 
-2. **Proxy Layer** (`k-proxy-server.js`)
-   - Runs on ports 3457-3464 for k1-k8 models
-   - Translates Claude CLI calls to OpenRouter API
-   - Handles authentication and timeout (60 min default)
+### System Flow
 
-3. **Debate Orchestration** (`src/claude-cli-debate.js`)
-   - **Intelligent Selection**: GeminiCoordinator analyzes question → selects 3-5 optimal models
-   - **Parallel Execution**: Spawns Claude CLI processes for each model
-   - **Full MCP Access**: Each model can read files, run bash, search code
-   - **Two-Round Process**: Independent analysis → collaborative improvement
+```
+MCP Request → index.js → Claude CLI Orchestrator → k-proxy-server (3457-3464) → OpenRouter
+                              ↓
+                    Gemini Coordinator (analyzes question)
+                              ↓
+                    Selects 3-5 optimal models
+                              ↓
+              Round 1: Independent Analysis (parallel)
+                              ↓
+              Semantic Scoring & Selection
+                              ↓
+              Round 2: Collaborative Improvement
+                              ↓
+                    Final Consensus + Confidence Score
+```
 
-4. **Advanced Features**
-   - **Security Layer** (`src/security.js`): HMAC-SHA256 signing, rate limiting, input validation
-   - **Retry Handler** (`src/utils/retry-handler.js`): Exponential backoff with intelligent error classification
-   - **Confidence Scoring** (`src/confidence-scorer.js`): 0-100% scores with multi-factor analysis
-   - **Smart Caching** (`src/cache/debate-cache.js`): 90% cost reduction, intelligent invalidation
-   - **Learning System** (`src/learning/learning-system.js`): Pattern detection, model profiling
-   - **Performance Tracking** (`src/performance-tracker.js`): SQLite-based metrics
-   - **Cross-Verification** (`src/cross-verifier.js`): Adversarial testing for critical scenarios
-   - **Telemetry** (`src/telemetry-client.js`): Anonymous usage stats (opt-out: TELEMETRY_DISABLED=true)
+### Key Components
 
-### Key Directories
+**Entry Points:**
+- `index.js` - MCP server, tool registration, request routing
+- `k-proxy-server.js` - Proxy layer (ports 3457-3464), OpenRouter translation
 
-- `/src/adapters/` - Model-specific adapters for different AI providers
-- `/src/streaming/` - Real-time progress streaming components
-- `/src/learning/` - ML-based optimization and pattern detection
+**Core Orchestration:**
+- `src/claude-cli-debate.js` - Main debate orchestrator, spawns Claude CLI processes
+- `src/gemini-coordinator.js` - Intelligent model selection (analyzes questions)
+- `src/iterative-debate-orchestrator.js` - Multi-round debate management
+
+**Advanced Systems:**
+- `src/security.js` - HMAC-SHA256, rate limiting, validation, audit logging
+- `src/utils/retry-handler.js` - Exponential backoff with error classification
+- `src/confidence-scorer.js` - 0-100% confidence with multi-factor analysis
+- `src/cache/debate-cache.js` - Smart caching (90% cost reduction)
+- `src/learning/learning-system.js` - ML pattern detection, model profiling
+- `src/performance-tracker.js` - SQLite performance metrics (70+ categories)
+- `src/cross-verifier.js` - Adversarial testing for critical scenarios
+- `src/telemetry-client.js` - Anonymous usage stats (opt-out available)
+
+**Key Directories:**
+- `/src/adapters/` - Model-specific adapters (Claude, Gemini, Codex, fallback)
+- `/src/streaming/` - Real-time progress streaming
+- `/src/learning/` - ML optimization (pattern-detector, model-profiler, optimizer)
 - `/src/verification/` - Adversarial testing and fact-checking
-- `/src/utils/` - Utility functions including retry handler
-- `/data/` - SQLite DB and learning system data
+- `/src/utils/` - Utilities including retry handler
+- `/data/` - SQLite databases
 - `/cache/` - Debate cache storage
-- `/logs/` - Detailed execution logs
-- `/tests/unit/` - Unit tests for all components
-- `/tests/integration/` - Integration and end-to-end tests
-- `/docs/` - Additional documentation (RETRY_HANDLER.md, etc.)
+- `/logs/` - Execution logs (JSON format)
+- `/tests/` - Comprehensive test suite (unit, integration, e2e)
+
+## SDK Version
+
+**Current**: `@modelcontextprotocol/sdk@1.19.1` (upgraded from 0.5.0 on 2025-10-02)
+
+**Import Paths** (backwards compatible):
+```javascript
+// Server components
+import('@modelcontextprotocol/sdk/server/index.js')  // Server class
+import('@modelcontextprotocol/sdk/server/stdio.js')  // StdioServerTransport
+import('@modelcontextprotocol/sdk/types.js')        // ListToolsRequestSchema, CallToolRequestSchema
+
+// New SDK supports both ESM and CJS via export maps
+// Import paths work identically despite internal restructuring
+```
+
+**New SDK Features**:
+- Dual ESM/CJS builds (dist/esm and dist/cjs)
+- Enhanced TypeScript types
+- Improved streaming support
+- Additional middleware: cors, express-rate-limit
 
 ## Configuration
 
-### Required Environment Variables (.env)
+### Required Environment Variables
 ```bash
-# === REQUIRED ===
-OPENROUTER_API_KEY=sk-or-v1-xxx  # REQUIRED - Get from openrouter.ai
+# Required
+OPENROUTER_API_KEY=sk-or-v1-xxx      # From openrouter.ai
 
-# === SECURITY (Production Recommended) ===
-HMAC_SECRET=your_64_char_secret_here      # Generate with: npm run security:generate-secret
-ENABLE_REQUEST_SIGNING=true               # Enable HMAC request signing
-SIGNATURE_VALIDITY_WINDOW=300             # Request validity window (5 minutes)
+# Security (Production)
+HMAC_SECRET=xxx                       # 64+ chars, generate with npm script
+ENABLE_REQUEST_SIGNING=true
+SIGNATURE_VALIDITY_WINDOW=300        # 5 minutes
 
-# === RETRY CONFIGURATION ===
-MAX_RETRIES=3                             # Maximum retry attempts
-INITIAL_RETRY_DELAY=1000                  # Initial delay (1 second)
-MAX_RETRY_DELAY=30000                     # Maximum delay (30 seconds)
-BACKOFF_MULTIPLIER=2                      # Exponential backoff multiplier
+# Retry Configuration
+MAX_RETRIES=3
+INITIAL_RETRY_DELAY=1000             # 1 second
+MAX_RETRY_DELAY=30000                # 30 seconds
+BACKOFF_MULTIPLIER=2
 
-# === OPTIONAL ===
-DEBATE_TIMEOUT_MINUTES=60                 # Request timeout (default: 60)
-TELEMETRY_DISABLED=false                  # Opt-out of anonymous telemetry
-RATE_LIMIT_MAX_REQUESTS=10                # Rate limit per minute
+# Optional
+DEBATE_TIMEOUT_MINUTES=60
+TELEMETRY_DISABLED=false
+RATE_LIMIT_MAX_REQUESTS=10
 ```
 
 ### MCP Registration
-The server must be registered in `~/.claude.json`:
+Add to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
     "debate-consensus": {
       "command": "node",
-      "args": ["/path/to/mcp-debate-consensus/index.js"]
+      "args": ["/opt/mcp/servers/debate-consensus/index.js"]
     }
   }
 }
 ```
 
-## Model Testing Workflow
+## Development Workflow
 
-When testing model availability:
-1. First run `node health-check.js` to verify proxy servers
-2. Check individual model health: `curl http://localhost:3457/health`
-3. Test with simple question: `node test-debate.js "What is 2+2?"`
-4. Review logs in `/logs/` directory for detailed debugging
+### Testing Models
+1. Run `node health-check.js` - verify proxy servers
+2. Check individual: `curl http://localhost:3457/health`
+3. Test with question: `node test-debate.js "What is 2+2?"`
+4. Review logs in `/logs/debate-*.json` for debugging
 
-## Error Recovery
+### Common Issues
 
-### Common Issues & Solutions
-
-**Proxy server not starting**:
+**Proxy server not starting:**
 - Check ports 3457-3464 are free
 - Verify OPENROUTER_API_KEY is set
-- Look for startup detection issues (should see "proxy running on http://")
+- Look for "proxy running on http://" in output
 
-**Model failures**:
+**Model failures:**
 - Minimum 2 models must respond for consensus
 - System gracefully degrades with fallback logic
-- Check retry handler logs for detailed failure analysis
-- Check `/logs/debate-*.json` for detailed error info
+- Check retry handler logs in debate results
+- Review `/logs/debate-*.json` for details
 
-**Security issues**:
-- Generate HMAC secret: `npm run security:generate-secret`
-- Test security: `npm run test:security`
+**Security issues:**
+- Generate secret: `npm run security:generate-secret`
+- Test: `npm run test:security`
 - Check signature validation in logs
 
-**Cache issues**:
-- Cache auto-invalidates after 24 hours
+**Cache issues:**
+- Auto-invalidates after 24 hours
 - Manual clear: `rm -rf cache/debate-cache.json`
 - Disable: Set cache size to 0 in config
 
-**Retry failures**:
-- Check retry configuration in .env
-- Review retry statistics: See debate results for retry stats
-- Test retry functionality: `node test-retry-functionality.js`
+**Retry failures:**
+- Check .env retry configuration
+- Review retry statistics in debate results
+- Test: `node test-retry-functionality.js`
+
+## Code Architecture
+
+### Wrapper Scripts (k1-k8)
+Shell wrappers in root directory proxy Claude CLI calls:
+- `k1-wrapper.sh` through `k8-wrapper.sh`
+- Each wrapper points to specific port (3457-3464)
+- Enables model diversity while using Claude CLI interface
+
+### Debate Process
+1. **Question Analysis** - GeminiCoordinator analyzes and categorizes
+2. **Model Selection** - Chooses 3-5 optimal models from pool of 7
+3. **Round 1** - Independent parallel analysis (each model gets full MCP access)
+4. **Semantic Scoring** - LLM evaluates proposals (relevance, novelty, quality, coherence)
+5. **Best Selection** - Highest scoring proposal becomes baseline
+6. **Round 2** - Collaborative improvement based on best proposal
+7. **Synthesis** - Final consensus with confidence score
+
+### Parallel Instances
+Syntax: `k1:2,k2,k3:3` means:
+- k1:2 = 2 parallel Claude Sonnet instances (different seeds)
+- k2 = 1 GPT-5 instance
+- k3:3 = 3 parallel Qwen instances
+Enhances diversity and consensus quality.
+
+### Quality Presets
+- **Rapid** (3-5s) - Single fast model
+- **Balanced** (30-60s) - 3 models (default)
+- **Maximum** (2-5min) - 5 models with verification
+
+## Testing Strategy
+
+### Test Structure
+- `tests/unit/` - Component unit tests
+- `tests/integration/` - Integration tests
+- `tests/e2e/` - End-to-end workflows
+- `test-*.js` (root) - Direct functional tests
+
+### Running Single Tests
+```bash
+# Run specific test file
+NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest tests/unit/retry-handler.test.js
+
+# Run with debugging
+npm run test:debug
+
+# Run with verbose output
+npm run test:verbose
+
+# Clean and run
+npm run test:clean
+```
+
+### Jest Configuration
+- ESM modules enabled
+- Single worker for stability
+- 45s timeout for complex operations
+- Coverage thresholds: 75%
 
 ## Performance Optimization
 
-### Quality Presets
-- **Rapid** (3-5s): Single fast model, use for quick answers
-- **Balanced** (30-60s): 3 models, default for most questions
-- **Maximum** (2-5min): 5 models with verification, critical decisions
+### Caching Strategy
+- Question similarity detection
+- 24-hour auto-invalidation
+- Configurable cache size
+- 90% cost reduction on repeated questions
 
-### Parallel Instances
-Use syntax `k1:2,k2,k3:3` to run multiple instances of same model with different seeds for enhanced diversity.
+### Performance Tracking
+- SQLite database in `/data/`
+- 70+ universal categories (not just programming)
+- Tracks: success rate, avg confidence, model performance
+- Used by learning system for optimization
 
-## Telemetry & Privacy
+### Learning System
+- Pattern detection across debates
+- Model profiling (strengths/weaknesses)
+- Automatic optimization recommendations
+- Can be reset with `npm run learning:reset`
 
-- Anonymous usage statistics help improve the system
-- **Opt-out**: Set `TELEMETRY_DISABLED=true` in `.env`
-- No user questions or responses are collected
-- Only collects: category, models used, timing, confidence scores
-- See TELEMETRY.md for full details
+## Security Features
 
-## Documentation Files
+**HMAC-SHA256 Request Signing:**
+- Cryptographic authentication
+- Replay attack prevention (nonce + timestamp)
+- Timing-safe comparison
 
-The project includes comprehensive documentation:
+**Rate Limiting:**
+- Per-IP and per-API-key limits
+- Configurable windows
+- Automatic cleanup
 
-- **README.md** - Main project documentation and quick start guide
-- **API.md** - Complete API documentation with authentication and examples
-- **SECURITY.md** - Security implementation guide and best practices
-- **TELEMETRY.md** - Privacy policy and telemetry details
-- **DEPLOYMENT.md** - Production deployment guide with Docker and scaling
-- **docs/RETRY_HANDLER.md** - Detailed retry handler documentation
-- **CLAUDE.md** - This file, guidance for Claude Code development
+**Input Validation:**
+- XSS prevention
+- Injection protection
+- Path traversal prevention
 
-## Version 2.1 New Features
+**Security Headers:**
+- HSTS, CSP, X-Frame-Options
+- Comprehensive security suite
 
-This version adds enterprise-grade features:
+**Audit Logging:**
+- All security events logged
+- Forensic capabilities
 
-### Security & Authentication
-- HMAC-SHA256 request signing with replay protection
-- Rate limiting with configurable limits
-- Input validation and sanitization
-- Security headers and audit logging
+## Documentation
 
-### Reliability & Retry Logic
-- Exponential backoff retry with intelligent error classification
-- Configurable retry attempts and delays
-- Comprehensive retry statistics and monitoring
+- **README.md** - Quick start and features
+- **API.md** - Complete API documentation
+- **SECURITY.md** - Security implementation guide
+- **TELEMETRY.md** - Privacy policy
+- **DEPLOYMENT.md** - Production deployment
+- **docs/RETRY_HANDLER.md** - Retry handler details
+- **CLAUDE.md** - This file
 
-### Enhanced Monitoring
-- Extended performance tracking
-- Health check improvements
-- Security event monitoring
-- Production-ready telemetry system
+## Version 2.1 Features
 
-All new features are extensively tested and documented.
+**Enterprise Production Ready:**
+- 96% test reliability improvement (279/283 passing)
+- Complete security suite with HMAC signing
+- Intelligent retry with exponential backoff
+- Advanced monitoring and telemetry
+- ML-based learning system
+- Cross-verification for critical scenarios
+
+## Key Files Reference
+
+| File | Purpose | Line Reference |
+|------|---------|---------------|
+| `index.js:70` | Debate tool registration |
+| `k-proxy-server.js:42` | Model mapping |
+| `src/claude-cli-debate.js:56` | Model definitions |
+| `src/gemini-coordinator.js` | Intelligent selection |
+| `src/security.js` | Security implementation |
+| `src/utils/retry-handler.js` | Retry logic |
+| `jest.config.js:30` | Test configuration |
+
+## Debugging Tips
+
+1. **Enable verbose logging**: `npm run dev`
+2. **Check proxy health**: `curl http://localhost:3457/health` (repeat for 3458-3464)
+3. **Review debate logs**: `cat logs/debate-*.json | jq`
+4. **Test security**: `npm run test:security`
+5. **Validate config**: `npm run validate`
+6. **Monitor learning**: `npm run learning:status`
+
+## Common Patterns
+
+**Adding a new model:**
+1. Update `modelMap` in `k-proxy-server.js`
+2. Add to `portMap` with new port
+3. Create `kX-wrapper.sh` in root
+4. Update model list in `src/claude-cli-debate.js`
+5. Update documentation
+
+**Adding a new feature:**
+1. Create in appropriate `/src/` directory
+2. Add unit tests in `/tests/unit/`
+3. Add integration test if needed
+4. Update CLAUDE.md with reference
+5. Run full test suite before commit
+
+**Troubleshooting a failed debate:**
+1. Check `logs/debate-*.json` for details
+2. Verify proxy servers: `node health-check.js`
+3. Test individual models: `curl http://localhost:345X/health`
+4. Review retry statistics in debate output
+5. Check learning system: `npm run learning:status`
