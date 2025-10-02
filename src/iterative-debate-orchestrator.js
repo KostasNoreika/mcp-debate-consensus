@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import { LLMSemanticEvaluator } from './llm-semantic-evaluator.js';
 import { ProgressReporter } from './progress-reporter.js';
 import { GeminiCoordinator } from './gemini-coordinator.js';
+import logger from './utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -88,7 +89,7 @@ class ConsensusAnalyzer {
       const result = await this.callCoordinator(prompt);
       return this.parseConsensusResult(result);
     } catch (error) {
-      console.error('Consensus evaluation failed:', error);
+      logger.error('Consensus evaluation failed', { error: error.message, stack: error.stack });
       return this.fallbackConsensusEvaluation(responses);
     }
   }
@@ -171,7 +172,7 @@ Return your evaluation as JSON:
       }
       throw new Error('No JSON found in consensus result');
     } catch (error) {
-      console.error('Failed to parse consensus JSON:', error);
+      logger.error('Failed to parse consensus JSON', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -285,16 +286,17 @@ class IterativeDebateOrchestrator {
     this.progressReporter.startHeartbeat();
     this.progressReporter.setPhase('Initializing iterative debate');
 
-    console.log('🎯 Iterative Multi-Model Debate System v2.0 (Intelligent Selection)\n');
-    console.log('📍 Project:', projectPath);
-    console.log('❓ Question:', question);
-    console.log(`🔄 Max iterations: ${this.maxIterations}`);
-    console.log(`🎯 Consensus threshold: ${this.consensusThreshold}%`);
+    logger.info('Iterative Multi-Model Debate System v2.0 (Intelligent Selection) starting', {
+      projectPath,
+      question: question.substring(0, 100),
+      maxIterations: this.maxIterations,
+      consensusThreshold: this.consensusThreshold
+    });
 
     // Phase 0: Intelligent Model Selection
     if (this.useIntelligentSelection) {
       this.progressReporter.setPhase('Analyzing question for optimal model selection');
-      console.log('\n🧠 PHASE 0: Intelligent Model Selection\n');
+      logger.info('PHASE 0: Intelligent Model Selection');
 
       try {
         this.selectionAnalysis = await this.geminiCoordinator.analyzeQuestion(question, {
@@ -304,29 +306,32 @@ class IterativeDebateOrchestrator {
 
         this.selectedModels = this.getSelectedModelsFromAnalysis(this.selectionAnalysis);
 
-        console.log(`📊 Analysis: ${this.selectionAnalysis.category} (${this.selectionAnalysis.complexityLevel}/${this.selectionAnalysis.criticalityLevel})`);
-        console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
-        console.log(`💰 Cost reduction: ${this.selectionAnalysis.costReduction}%`);
-        console.log(`⚡ Speed improvement: ${this.selectionAnalysis.estimatedSpeedGain}`);
-        console.log(`🤖 Analysis source: ${this.selectionAnalysis.analysisSource}`);
-        console.log(`📝 Reasoning: ${this.selectionAnalysis.reasoning}`);
+        logger.info('Model selection analysis complete', {
+          category: this.selectionAnalysis.category,
+          complexityLevel: this.selectionAnalysis.complexityLevel,
+          criticalityLevel: this.selectionAnalysis.criticalityLevel,
+          selectedModels: this.selectedModels.map(m => m.name),
+          modelCount: this.selectedModels.length,
+          costReduction: `${this.selectionAnalysis.costReduction}%`,
+          speedImprovement: this.selectionAnalysis.estimatedSpeedGain,
+          analysisSource: this.selectionAnalysis.analysisSource,
+          reasoning: this.selectionAnalysis.reasoning
+        });
 
       } catch (error) {
-        console.warn('⚠️ Intelligent selection failed, using all models:', error.message);
+        logger.warn('Intelligent selection failed, using all models', { error: error.message });
         this.selectedModels = this.models; // Fallback to all models
         this.selectionAnalysis = null;
       }
     } else {
-      console.log('\n📋 Using all available models (intelligent selection disabled)');
+      logger.info('Using all available models (intelligent selection disabled)');
       this.selectedModels = this.models;
     }
-
-    console.log('\n' + '='.repeat(70) + '\n');
 
     try {
       // Round 1: Initial proposals
       this.progressReporter.setPhase('Round 1: Initial Independent Analysis');
-      console.log('🔄 ROUND 1: Initial Independent Analysis\n');
+      logger.info('ROUND 1: Initial Independent Analysis starting');
       const initialResponses = await this.getInitialProposals(question, projectPath);
     
       if (Object.keys(initialResponses).length < 2) {
@@ -340,7 +345,10 @@ class IterativeDebateOrchestrator {
         initialResponses
       );
 
-      console.log(`\n📊 Initial consensus: ${initialConsensus.consensus_score}%`);
+      logger.info('Initial consensus evaluated', {
+        consensusScore: initialConsensus.consensus_score,
+        modelsResponded: Object.keys(initialResponses).length
+      });
       this.progressReporter.progress(`Initial consensus: ${initialConsensus.consensus_score}%`, {
         percentage: Math.min(20, initialConsensus.consensus_score / 5),
         details: `${Object.keys(initialResponses).length} models responded`
@@ -353,7 +361,10 @@ class IterativeDebateOrchestrator {
 
       // Early exit if high initial consensus
       if (initialConsensus.consensus_score >= this.consensusThreshold) {
-        console.log('✅ High initial consensus achieved! Proceeding to synthesis.');
+        logger.info('High initial consensus achieved, proceeding to synthesis', {
+          consensusScore: initialConsensus.consensus_score,
+          threshold: this.consensusThreshold
+        });
         this.progressReporter.progress('High consensus achieved early', {
           percentage: 100,
           details: `Consensus: ${initialConsensus.consensus_score}%`
@@ -365,7 +376,7 @@ class IterativeDebateOrchestrator {
 
       // Round 2: Iterative debate
       this.progressReporter.setPhase('Round 2: Iterative Consensus Building');
-      console.log('\n🔄 ROUND 2: Iterative Consensus Building\n');
+      logger.info('ROUND 2: Iterative Consensus Building starting');
       const finalResponses = await this.runIterativeRounds(
         question,
         initialResponses,
@@ -374,7 +385,7 @@ class IterativeDebateOrchestrator {
 
       // Final synthesis
       this.progressReporter.setPhase('Final Synthesis');
-      console.log('\n🔧 FINAL SYNTHESIS\n');
+      logger.info('FINAL SYNTHESIS starting');
       const result = await this.synthesizeFinal(question, finalResponses, this.debateMemory.getDebateState());
 
       this.progressReporter.complete('Iterative debate completed successfully');
@@ -461,7 +472,7 @@ Provide a comprehensive response based on your specialization.`;
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value.result) {
         proposals[result.value.model] = result.value.result;
-        console.log(`  ✅ ${result.value.model} provided initial response`);
+        logger.debug('Model provided initial response', { model: result.value.model });
       }
     });
     
@@ -477,7 +488,11 @@ Provide a comprehensive response based on your specialization.`;
 
     while (iteration < this.maxIterations) {
       iteration++;
-      console.log(`\n🔄 Iteration ${iteration}/${this.maxIterations}`);
+      logger.info('Starting debate iteration', {
+        iteration,
+        maxIterations: this.maxIterations,
+        previousConsensus: this.debateMemory.consensusHistory[this.debateMemory.consensusHistory.length - 1] || 0
+      });
 
       this.progressReporter.progress(`Starting iteration ${iteration}/${this.maxIterations}`, {
         percentage: 20 + (iteration * 60 / this.maxIterations),
@@ -502,8 +517,11 @@ Provide a comprehensive response based on your specialization.`;
         this.debateMemory.getDebateState()
       );
       
-      console.log(`  📊 Consensus score: ${consensus.consensus_score}%`);
-      console.log(`  📈 Trend: ${consensus.convergence_trend || 'stable'}`);
+      logger.info('Iteration consensus evaluated', {
+        iteration,
+        consensusScore: consensus.consensus_score,
+        convergenceTrend: consensus.convergence_trend || 'stable'
+      });
 
       this.progressReporter.progress(`Iteration ${iteration} consensus: ${consensus.consensus_score}%`, {
         percentage: 20 + (iteration * 60 / this.maxIterations),
@@ -522,7 +540,11 @@ Provide a comprehensive response based on your specialization.`;
 
       // Check if consensus reached
       if (consensus.consensus_score >= this.consensusThreshold) {
-        console.log(`\n✅ Consensus threshold reached after ${iteration} iterations!`);
+        logger.info('Consensus threshold reached', {
+          iteration,
+          consensusScore: consensus.consensus_score,
+          threshold: this.consensusThreshold
+        });
         this.progressReporter.progress('Consensus threshold reached!', {
           percentage: 90,
           details: `${consensus.consensus_score}% consensus after ${iteration} iterations`
@@ -532,7 +554,7 @@ Provide a comprehensive response based on your specialization.`;
 
       // Check if debate is stuck
       if (iteration > 2 && this.isDebateStuck()) {
-        console.log('\n⚠️ Debate appears stuck. Moving to synthesis.');
+        logger.warn('Debate appears stuck, moving to synthesis', { iteration });
         this.progressReporter.warning('Debate appears stuck, moving to synthesis');
         return updatedResponses;
       }
@@ -540,7 +562,10 @@ Provide a comprehensive response based on your specialization.`;
       currentResponses = updatedResponses;
     }
 
-    console.log(`\n⚠️ Max iterations (${this.maxIterations}) reached without full consensus.`);
+    logger.warn('Max iterations reached without full consensus', {
+      maxIterations: this.maxIterations,
+      finalConsensus: this.debateMemory.consensusHistory[this.debateMemory.consensusHistory.length - 1] || 0
+    });
     this.progressReporter.warning(`Max iterations reached (${this.maxIterations}) without full consensus`);
     return currentResponses;
   }
@@ -598,8 +623,8 @@ Provide your updated response:`;
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value.result) {
         updatedResponses[result.value.model] = result.value.result;
-        console.log(`  ✅ ${result.value.model} updated position`);
-        
+        logger.debug('Model updated position', { model: result.value.model });
+
         // Track position change
         this.debateMemory.updateModelPosition(
           result.value.model,
@@ -731,7 +756,7 @@ Provide your updated response:`;
       });
       
       child.on('error', (error) => {
-        console.error(`Model ${model.name} error:`, error);
+        logger.error('Model execution error', { model: model.name, error: error.message });
         resolve(null);
       });
     });
@@ -755,7 +780,7 @@ Provide your updated response:`;
     
     const logFile = path.join(this.logsDir, `iterative_debate_intermediate_${Date.now()}.json`);
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
-    console.log(`  💾 Intermediate log saved: ${logFile}`);
+    logger.debug('Intermediate log saved', { logFile, iteration: iterationNum });
   }
 
   /**
@@ -775,7 +800,7 @@ Provide your updated response:`;
     
     const logFile = path.join(this.logsDir, `iterative_debate_${Date.now()}.json`);
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
-    console.log(`\n💾 Debate log saved: ${logFile}`);
+    logger.info('Debate log saved', { logFile, iterations: debateState.currentRound });
   }
 }
 

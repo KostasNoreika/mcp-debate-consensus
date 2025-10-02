@@ -9,6 +9,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from './utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,7 +28,12 @@ class ConfidenceScorer {
     };
 
     // Load historical data
-    this.loadHistoricalData().catch(console.error);
+    this.loadHistoricalData().catch(err => {
+      logger.error('Failed to load historical data in constructor', {
+        error: err.message,
+        stack: err.stack
+      });
+    });
   }
 
   /**
@@ -348,7 +354,10 @@ class ConfidenceScorer {
 
       return categoryData.successful / totalOutcomes;
     } catch (error) {
-      console.error('Error getting historical accuracy:', error);
+      logger.error('Error getting historical accuracy', {
+        error: error.message,
+        stack: error.stack
+      });
       return 0.7; // Default fallback
     }
   }
@@ -668,7 +677,10 @@ class ConfidenceScorer {
       await fs.mkdir(path.dirname(this.historyFile), { recursive: true });
       await fs.writeFile(this.historyFile, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('Error saving historical data:', error);
+      logger.error('Error saving historical data', {
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -708,7 +720,10 @@ class ConfidenceScorer {
 
       await this.saveHistoricalData(history);
     } catch (error) {
-      console.error('Error storing confidence result:', error);
+      logger.error('Error storing confidence result', {
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -752,7 +767,10 @@ class ConfidenceScorer {
 
       return stats;
     } catch (error) {
-      console.error('Error getting confidence stats:', error);
+      logger.error('Error getting confidence stats', {
+        error: error.message,
+        stack: error.stack
+      });
       return null;
     }
   }

@@ -11,6 +11,7 @@ import { LearningOptimizer } from './optimizer.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,10 +53,10 @@ export class LearningSystem {
   async initialize() {
     if (this.isInitialized) return;
 
-    console.log('🧠 Initializing Learning System...');
+    logger.info('Initializing Learning System');
 
     if (!this.learningEnabled) {
-      console.log('📚 Learning system disabled via environment variable');
+      logger.info('Learning system disabled via environment variable');
       return;
     }
 
@@ -71,10 +72,11 @@ export class LearningSystem {
     // Load existing statistics
     await this.loadStats();
 
-    console.log('✅ Learning System initialized');
-    console.log(`📊 Total debates analyzed: ${this.stats.totalDebatesAnalyzed}`);
-    console.log(`🔍 Patterns detected: ${this.stats.patternsDetected}`);
-    console.log(`⚡ Optimizations applied: ${this.stats.optimizationsApplied}`);
+    logger.info('Learning System initialized', {
+      totalDebatesAnalyzed: this.stats.totalDebatesAnalyzed,
+      patternsDetected: this.stats.patternsDetected,
+      optimizationsApplied: this.stats.optimizationsApplied
+    });
 
     this.isInitialized = true;
   }
@@ -86,7 +88,7 @@ export class LearningSystem {
   async processDebate(debateResult) {
     if (!this.learningEnabled || !this.isInitialized) return;
 
-    console.log('📚 Processing debate for learning...');
+    logger.debug('Processing debate for learning');
 
     try {
       // Update model profiles
@@ -98,7 +100,7 @@ export class LearningSystem {
 
       // Run pattern detection periodically
       if (this.stats.totalDebatesAnalyzed % this.config.patternDetectionInterval === 0) {
-        console.log('🔍 Running periodic pattern detection...');
+        logger.info('Running periodic pattern detection');
         await this.patternDetector.detectPatterns();
         this.stats.patternsDetected++;
       }
@@ -114,17 +116,22 @@ export class LearningSystem {
 
       // Generate comprehensive reports periodically
       if (this.stats.totalDebatesAnalyzed % this.config.reportGenerationInterval === 0) {
-        console.log('📋 Generating comprehensive learning report...');
+        logger.info('Generating comprehensive learning report');
         await this.generateComprehensiveReport();
       }
 
       // Save updated statistics
       await this.saveStats();
 
-      console.log(`✅ Learning completed (${this.stats.totalDebatesAnalyzed} total debates processed)`);
+      logger.info('Learning completed', {
+        totalDebatesProcessed: this.stats.totalDebatesAnalyzed
+      });
 
     } catch (error) {
-      console.error('❌ Error during learning process:', error.message);
+      logger.error('Error during learning process', {
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -142,7 +149,7 @@ export class LearningSystem {
     try {
       // Infer category from question if not provided
       const category = context.category || this.inferCategory(question);
-      console.log(`🎯 Learning-based optimization for category: ${category}`);
+      logger.info('Learning-based optimization', { category });
 
       // Get optimization from the optimizer
       const optimization = await this.optimizer.optimizeSelection(category, context);
@@ -158,7 +165,9 @@ export class LearningSystem {
       return optimization;
 
     } catch (error) {
-      console.warn('⚠️ Learning-based optimization failed, using fallback:', error.message);
+      logger.warn('Learning-based optimization failed, using fallback', {
+        error: error.message
+      });
       return this.getFallbackSelection();
     }
   }
@@ -247,10 +256,12 @@ export class LearningSystem {
       const summary = this.formatReportSummary(report);
       await fs.writeFile(summaryPath, summary, 'utf8');
 
-      console.log(`📋 Comprehensive report saved: ${reportPath}`);
-      console.log(`📄 Summary saved: ${summaryPath}`);
+      logger.info('Comprehensive report saved', { reportPath, summaryPath });
     } catch (error) {
-      console.error('❌ Failed to save report files:', error.message);
+      logger.error('Failed to save report files', {
+        error: error.message,
+        stack: error.stack
+      });
       // Don't add error to report - just log it
     }
 
@@ -593,7 +604,7 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
   async resetLearningData() {
     if (!this.learningEnabled) return;
 
-    console.log('🔄 Resetting learning data...');
+    logger.info('Resetting learning data');
 
     // Reset statistics
     this.stats = {
@@ -621,7 +632,9 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
         await fs.unlink(path.join(this.reportsDir, file));
       }
     } catch (error) {
-      console.warn('Warning: Could not clear all learning data files:', error.message);
+      logger.warn('Could not clear all learning data files', {
+        error: error.message
+      });
     }
 
     // Reinitialize components
@@ -629,7 +642,7 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
     await this.patternDetector.initialize();
     await this.optimizer.initialize();
 
-    console.log('✅ Learning data reset complete');
+    logger.info('Learning data reset complete');
   }
 
   /**
@@ -651,7 +664,9 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
       const optimization = await this.optimizer.optimizeSelection(context.category || 'general', context);
       return optimization.models || [];
     } catch (error) {
-      console.warn('Failed to get model recommendations:', error.message);
+      logger.warn('Failed to get model recommendations', {
+        error: error.message
+      });
       return [
         { model: 'k1', confidence: 0.5 },
         { model: 'k2', confidence: 0.5 },
@@ -671,7 +686,7 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
       try {
         await this.modelProfiler.updateAfterDebate(outcome);
       } catch (error) {
-        console.warn('Error learning from outcome:', error.message);
+        logger.warn('Error learning from outcome', { error: error.message });
       }
     }
   }
@@ -737,7 +752,7 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
         details: trends
       };
     } catch (error) {
-      console.warn('Error detecting regressions:', error.message);
+      logger.warn('Error detecting regressions', { error: error.message });
       return {
         detected: false,
         severity: 'none',
@@ -758,7 +773,10 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
     try {
       return await this.patternDetector.detectPatterns();
     } catch (error) {
-      console.error('Error analyzing question patterns:', error.message);
+      logger.error('Error analyzing question patterns', {
+        error: error.message,
+        stack: error.stack
+      });
       return { patterns: [], error: error.message };
     }
   }
@@ -775,7 +793,10 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
     try {
       return this.modelProfiler.getModelPerformance();
     } catch (error) {
-      console.error('Error analyzing model performance:', error.message);
+      logger.error('Error analyzing model performance', {
+        error: error.message,
+        stack: error.stack
+      });
       return { accuracy: 0.7, speed: 0.8, error: error.message };
     }
   }
@@ -792,7 +813,10 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
     try {
       return await this.optimizer.generateOptimizations();
     } catch (error) {
-      console.error('Error generating optimizations:', error.message);
+      logger.error('Error generating optimizations', {
+        error: error.message,
+        stack: error.stack
+      });
       return { suggestions: [], error: error.message };
     }
   }
@@ -820,7 +844,10 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
       await this.saveStats();
       return { applied: true };
     } catch (error) {
-      console.error('Error applying optimization:', error.message);
+      logger.error('Error applying optimization', {
+        error: error.message,
+        stack: error.stack
+      });
       return { applied: false, error: error.message };
     }
   }
@@ -845,7 +872,10 @@ ${report.recommendations.map(rec => `- **${rec.type.toUpperCase()}** (${rec.prio
         variance: trends.variance || 0.1
       };
     } catch (error) {
-      console.error('Error checking convergence:', error.message);
+      logger.error('Error checking convergence', {
+        error: error.message,
+        stack: error.stack
+      });
       return { converged: false, stability: 0.5, error: error.message };
     }
   }

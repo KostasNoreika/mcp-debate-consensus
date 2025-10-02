@@ -6,6 +6,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import * as crypto from 'crypto';
+import logger from './utils/logger.js';
 
 class Security {
   constructor() {
@@ -64,7 +65,7 @@ class Security {
       return crypto.randomBytes(32).toString('hex');
     } catch (error) {
       // Fallback for environments where crypto might not be available
-      console.warn('Crypto module unavailable, using fallback secret generation');
+      logger.warn('Crypto module unavailable, using fallback secret generation', { error: error.message });
       return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
     }
   }
@@ -158,7 +159,7 @@ class Security {
 
       return !maliciousPatterns.some(pattern => pattern.test(input));
     } catch (error) {
-      console.error('Input validation error:', error);
+      logger.error('Input validation error', { error: error.message, stack: error.stack });
       return false;
     }
   }
@@ -199,7 +200,7 @@ class Security {
       hmac.update(data);
       return hmac.digest('hex');
     } catch (error) {
-      console.error('Signature generation error:', error);
+      logger.error('Signature generation error', { error: error.message, stack: error.stack });
       return null;
     }
   }
@@ -234,7 +235,7 @@ class Security {
 
       return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
     } catch (error) {
-      console.error('Signature validation error:', error);
+      logger.error('Signature validation error', { error: error.message, stack: error.stack });
       return false;
     }
   }
@@ -359,7 +360,7 @@ class Security {
         signedData: dataToSign
       };
     } catch (error) {
-      console.error('Outgoing request signing error:', error);
+      logger.error('Outgoing request signing error', { error: error.message, stack: error.stack });
       return { headers: {} };
     }
   }
@@ -517,13 +518,13 @@ class Security {
       };
 
       // Log basic request info
-      console.log(`[AUDIT] ${auditData.method} ${auditData.url} from ${auditData.ip}`);
+      logger.audit('Request received', auditData);
 
       // Check for suspicious patterns in request body
       if (req.body && typeof req.body === 'object') {
         const bodyString = JSON.stringify(req.body);
         if (!this.validateJsonContent(bodyString)) {
-          console.warn(`[AUDIT] Suspicious request detected from ${auditData.ip}:`, {
+          logger.security('Suspicious request detected', {
             ...auditData,
             suspiciousBody: bodyString.substring(0, 200)
           });

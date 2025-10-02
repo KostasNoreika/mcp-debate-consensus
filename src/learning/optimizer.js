@@ -8,6 +8,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -53,7 +54,7 @@ export class LearningOptimizer {
       const data = await fs.readFile(this.optimizationPath, 'utf8');
       this.optimizationRules = { ...this.optimizationRules, ...JSON.parse(data) };
     } catch (error) {
-      console.log('🎯 Creating new optimization rules...');
+      logger.info('Creating new optimization rules', { path: this.optimizationPath });
     }
   }
 
@@ -80,8 +81,10 @@ export class LearningOptimizer {
       minModels = 2         // Minimum number of models needed
     } = context;
 
-    console.log(`🎯 Optimizing model selection for: ${category}`);
-    console.log(`   Context: urgency=${urgency}, budget=${budgetConstraint}, quality=${quality}`);
+    logger.info('Optimizing model selection', {
+      category,
+      context: { urgency, budgetConstraint, quality, maxModels, minModels }
+    });
 
     // Get historical data
     const profiles = this.modelProfiler.getAllProfiles();
@@ -107,9 +110,12 @@ export class LearningOptimizer {
     // Calculate metrics for the selection
     const metrics = await this.calculateSelectionMetrics(selection, category, profiles);
 
-    console.log(`✅ Selected ${selection.length} models: ${selection.map(s => s.id).join(', ')}`);
-    console.log(`   Expected cost reduction: ${metrics.costReduction.toFixed(1)}%`);
-    console.log(`   Expected performance: ${(metrics.expectedPerformance * 100).toFixed(1)}%`);
+    logger.info('Model selection completed', {
+      selectedCount: selection.length,
+      models: selection.map(s => s.id).join(', '),
+      costReduction: `${metrics.costReduction.toFixed(1)}%`,
+      expectedPerformance: `${(metrics.expectedPerformance * 100).toFixed(1)}%`
+    });
 
     return {
       models: selection,
@@ -123,7 +129,7 @@ export class LearningOptimizer {
    * Data-based optimization (50+ debates available)
    */
   async dataBasedOptimization(category, context, profiles, patterns) {
-    console.log('📊 Using data-based optimization (50+ debates)');
+    logger.debug('Using data-based optimization', { threshold: '50+ debates', category });
 
     // Get category specialists
     const specialists = patterns.specialists[category] || [];
@@ -145,7 +151,7 @@ export class LearningOptimizer {
    * Hybrid optimization (10-49 debates available)
    */
   async hybridOptimization(category, context, profiles, patterns) {
-    console.log('🔄 Using hybrid optimization (10-49 debates)');
+    logger.debug('Using hybrid optimization', { threshold: '10-49 debates', category });
 
     // Combine historical data with heuristics
     const dataScores = await this.scoreModelsForCategory(category, context, profiles, patterns, 0.6);
@@ -175,7 +181,7 @@ export class LearningOptimizer {
    * Heuristic optimization (< 10 debates available)
    */
   async heuristicOptimization(category, context) {
-    console.log('🎲 Using heuristic optimization (< 10 debates)');
+    logger.debug('Using heuristic optimization', { threshold: '< 10 debates', category });
 
     const heuristicScores = await this.getHeuristicScores(category, context);
     const selection = this.selectOptimalCombination(Object.values(heuristicScores), context);
@@ -579,22 +585,34 @@ export class LearningOptimizer {
       milestones.debates500 = true;
       await this.unlockAdvancedOptimizations();
       updated = true;
-      console.log('🎓 Learning Milestone: 500 debates - Advanced optimizations unlocked!');
+      logger.info('Learning Milestone reached', {
+        milestone: '500 debates',
+        feature: 'Advanced optimizations unlocked'
+      });
     } else if (totalDebates >= 100 && !milestones.debates100) {
       milestones.debates100 = true;
       await this.enablePatternBasedOptimization();
       updated = true;
-      console.log('🎓 Learning Milestone: 100 debates - Pattern-based optimization enabled!');
+      logger.info('Learning Milestone reached', {
+        milestone: '100 debates',
+        feature: 'Pattern-based optimization enabled'
+      });
     } else if (totalDebates >= 50 && !milestones.debates50) {
       milestones.debates50 = true;
       await this.enableCostOptimization();
       updated = true;
-      console.log('🎓 Learning Milestone: 50 debates - Cost optimization enabled!');
+      logger.info('Learning Milestone reached', {
+        milestone: '50 debates',
+        feature: 'Cost optimization enabled'
+      });
     } else if (totalDebates >= 10 && !milestones.debates10) {
       milestones.debates10 = true;
       await this.enableBasicCategoryDetection();
       updated = true;
-      console.log('🎓 Learning Milestone: 10 debates - Category detection enabled!');
+      logger.info('Learning Milestone reached', {
+        milestone: '10 debates',
+        feature: 'Category detection enabled'
+      });
     }
 
     if (updated) {
@@ -610,7 +628,7 @@ export class LearningOptimizer {
       this.optimizationRules.categoryRules = {};
     }
 
-    console.log('📊 Basic category detection enabled');
+    logger.debug('Basic category detection enabled');
   }
 
   /**
@@ -625,7 +643,7 @@ export class LearningOptimizer {
       targetSavings: 0.3
     };
 
-    console.log('💰 Cost optimization enabled - targeting 30% savings');
+    logger.debug('Cost optimization enabled', { targetSavings: '30%', preferredModels: ['k3', 'k5'] });
   }
 
   /**
@@ -639,7 +657,9 @@ export class LearningOptimizer {
       synergyDetection: true
     };
 
-    console.log('🔍 Pattern-based optimization enabled');
+    logger.debug('Pattern-based optimization enabled', {
+      features: ['underdogBoosts', 'specialistPreference', 'synergyDetection']
+    });
   }
 
   /**
@@ -653,7 +673,10 @@ export class LearningOptimizer {
       learningRate: 0.1
     };
 
-    console.log('🚀 Advanced optimizations unlocked - predictive selection enabled');
+    logger.debug('Advanced optimizations unlocked', {
+      features: ['adaptive', 'predictive', 'contextAware'],
+      learningRate: 0.1
+    });
   }
 
   /**

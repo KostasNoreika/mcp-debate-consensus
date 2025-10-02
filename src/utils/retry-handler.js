@@ -6,6 +6,7 @@
  */
 
 import { setTimeout as delay } from 'timers/promises';
+import logger from './logger.js';
 
 /**
  * Error types for classification
@@ -247,7 +248,7 @@ export class RetryHandler {
     this.stats = new RetryStats();
 
     if (this.config.enableLogging) {
-      console.log('🔄 RetryHandler initialized with config:', {
+      logger.debug('RetryHandler initialized', {
         maxRetries: this.config.maxRetries,
         initialDelay: this.config.initialDelay,
         maxDelay: this.config.maxDelay,
@@ -274,7 +275,11 @@ export class RetryHandler {
     for (let attempt = 1; attempt <= this.config.maxRetries + 1; attempt++) {
       try {
         if (this.config.enableLogging && attempt > 1) {
-          console.log(`🔄 Retry attempt ${attempt}/${this.config.maxRetries + 1} for ${functionName}`);
+          logger.debug('Retry attempt', {
+            function: functionName,
+            attempt,
+            maxAttempts: this.config.maxRetries + 1
+          });
         }
 
         // Execute the function with timeout
@@ -284,7 +289,11 @@ export class RetryHandler {
         this.stats.recordAttempt(attempt, true, null, totalRetryTime);
 
         if (this.config.enableLogging && attempt > 1) {
-          console.log(`✅ ${functionName} succeeded on attempt ${attempt} (total retry time: ${totalRetryTime}ms)`);
+          logger.info('Function succeeded after retry', {
+            function: functionName,
+            attempt,
+            totalRetryTime
+          });
         }
 
         return result;
@@ -296,9 +305,14 @@ export class RetryHandler {
         const classification = ErrorClassifier.classify(error);
 
         if (this.config.enableLogging) {
-          console.warn(`❌ ${functionName} attempt ${attempt} failed: ${error.message}`);
-          console.warn(`📊 Error classification: ${classification.type} (retriable: ${classification.retriable})`);
-          console.warn(`💡 Reason: ${classification.reason}`);
+          logger.warn('Function attempt failed', {
+            function: functionName,
+            attempt,
+            error: error.message,
+            classification: classification.type,
+            retriable: classification.retriable,
+            reason: classification.reason
+          });
         }
 
         // If it's not retriable or we've exhausted retries, fail immediately
@@ -329,7 +343,10 @@ export class RetryHandler {
         totalRetryTime += delayMs;
 
         if (this.config.enableLogging) {
-          console.log(`⏳ Waiting ${delayMs}ms before retry ${attempt + 1}...`);
+          logger.debug('Waiting before retry', {
+            delayMs,
+            nextAttempt: attempt + 1
+          });
         }
 
         // Wait before next attempt
@@ -389,7 +406,7 @@ export class RetryHandler {
     this.config = { ...this.config, ...newConfig };
 
     if (this.config.enableLogging) {
-      console.log('🔄 RetryHandler configuration updated:', newConfig);
+      logger.info('RetryHandler configuration updated', newConfig);
     }
   }
 }

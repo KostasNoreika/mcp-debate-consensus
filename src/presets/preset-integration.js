@@ -7,6 +7,7 @@
  */
 
 import { PresetSelector, PresetManager, QualityPresets } from './quality-presets.js';
+import logger from '../utils/logger.js';
 
 /**
  * Enhanced debate runner with preset support
@@ -41,10 +42,11 @@ export class PresetIntegratedDebate {
 
     await this.initialize();
 
-    console.log('🎯 Multi-Model Debate Consensus v2.1 (Quality Presets + Intelligent Selection)\n');
-    console.log('📍 Project:', projectPath);
-    console.log('❓ Question:', question);
-    console.log('🔧 Tool Access: Full MCP integration enabled');
+    logger.info('Multi-Model Debate Consensus v2.1 (Quality Presets + Intelligent Selection) starting', {
+      projectPath,
+      question: question.substring(0, 100),
+      toolAccess: 'Full MCP integration enabled'
+    });
 
     // Phase 0: Preset Selection and Configuration
     let selectedPreset = null;
@@ -52,7 +54,7 @@ export class PresetIntegratedDebate {
 
     if (preset || (!modelConfig && !this.debate.useIntelligentSelection)) {
       this.debate.progressReporter?.setPhase('Selecting quality preset');
-      console.log('\n📋 PHASE 0: Quality Preset Selection\n');
+      logger.info('PHASE 0: Quality Preset Selection');
 
       try {
         selectedPreset = await this.presetSelector.selectPreset(question, {
@@ -65,13 +67,18 @@ export class PresetIntegratedDebate {
         // Apply overrides to the preset
         if (Object.keys(overrides).length > 0) {
           selectedPreset = this.presetSelector.applyPresetOverrides(selectedPreset, overrides);
-          console.log(`🔧 Applied overrides: ${Object.keys(overrides).join(', ')}`);
+          logger.info('Applied preset overrides', { overrides: Object.keys(overrides) });
         }
 
         this.currentPreset = selectedPreset;
 
-        // Display preset information
-        console.log(this.presetManager.formatPresetInfo(selectedPreset.id));
+        // Log preset information
+        logger.info('Preset selected', {
+          presetId: selectedPreset.id,
+          presetName: selectedPreset.name,
+          estimatedCost: selectedPreset.estimatedCost,
+          estimatedTime: selectedPreset.estimatedTime
+        });
 
         // Convert preset to model configuration
         finalModelConfig = this.convertPresetToModelConfig(selectedPreset);
@@ -79,25 +86,24 @@ export class PresetIntegratedDebate {
         // Update timeout if specified in preset
         if (selectedPreset.timeoutMinutes) {
           this.debate.timeout = selectedPreset.timeoutMinutes * 60 * 1000;
-          console.log(`⏱️  Timeout adjusted to: ${selectedPreset.timeoutMinutes} minutes`);
+          logger.info('Timeout adjusted', { timeoutMinutes: selectedPreset.timeoutMinutes });
         }
 
         // Override intelligent selection if preset specifies
         if (selectedPreset.useIntelligentSelection !== undefined) {
           this.debate.useIntelligentSelection = selectedPreset.useIntelligentSelection;
-          console.log(`🧠 Intelligent selection: ${selectedPreset.useIntelligentSelection ? 'enabled' : 'disabled'} (preset override)`);
+          logger.info('Intelligent selection override', {
+            enabled: selectedPreset.useIntelligentSelection,
+            source: 'preset'
+          });
         }
 
-        console.log(`\n💰 Estimated cost: ${selectedPreset.estimatedCost}`);
-        console.log(`⏱️  Estimated time: ${selectedPreset.estimatedTime}`);
-
       } catch (error) {
-        console.warn(`⚠️ Preset selection failed: ${error.message}`);
-        console.log(`🔄 Falling back to standard debate configuration`);
+        logger.warn('Preset selection failed, falling back to standard configuration', {
+          error: error.message
+        });
       }
     }
-
-    console.log('\n' + '='.repeat(70) + '\n');
 
     // Run the debate with the configured settings
     const startTime = Date.now();
@@ -119,11 +125,15 @@ export class PresetIntegratedDebate {
         selectionReason: selectedPreset.selectionReason
       };
 
-      console.log('\n📊 Preset Performance Summary:');
-      console.log(`   Preset: ${selectedPreset.name} (${selectedPreset.id})`);
-      console.log(`   Time: ${actualTime}s (estimated: ${selectedPreset.estimatedTime})`);
-      console.log(`   Cost: $${actualCost.estimated.toFixed(3)} (estimated: ${selectedPreset.estimatedCost})`);
-      console.log(`   Reason: ${selectedPreset.selectionReason}`);
+      logger.info('Preset Performance Summary', {
+        preset: selectedPreset.name,
+        presetId: selectedPreset.id,
+        actualTime: `${actualTime}s`,
+        estimatedTime: selectedPreset.estimatedTime,
+        actualCost: `$${actualCost.estimated.toFixed(3)}`,
+        estimatedCost: selectedPreset.estimatedCost,
+        reason: selectedPreset.selectionReason
+      });
     }
 
     return result;
@@ -222,21 +232,28 @@ export function displayPresetInfo() {
   const manager = new PresetManager();
   const table = manager.getComparisonTable();
 
-  console.log('\n📋 Available Quality Presets:\n');
-  console.log('┌─────────────────┬────────┬──────────┬──────────┬─────────────────────┐');
-  console.log('│ Preset          │ Models │ Time     │ Cost     │ Best For            │');
-  console.log('├─────────────────┼────────┼──────────┼──────────┼─────────────────────┤');
+  logger.info('Available Quality Presets');
 
-  table.rows.forEach(row => {
+  const tableHeader = '┌─────────────────┬────────┬──────────┬──────────┬─────────────────────┐\n' +
+    '│ Preset          │ Models │ Time     │ Cost     │ Best For            │\n' +
+    '├─────────────────┼────────┼──────────┼──────────┼─────────────────────┤';
+
+  const tableRows = table.rows.map(row => {
     const [preset, models, time, cost, bestFor] = row;
-    console.log(`│ ${preset.padEnd(15)} │ ${models.padEnd(6)} │ ${time.padEnd(8)} │ ${cost.padEnd(8)} │ ${bestFor.padEnd(19)} │`);
+    return `│ ${preset.padEnd(15)} │ ${models.padEnd(6)} │ ${time.padEnd(8)} │ ${cost.padEnd(8)} │ ${bestFor.padEnd(19)} │`;
+  }).join('\n');
+
+  const tableFooter = '└─────────────────┴────────┴──────────┴──────────┴─────────────────────┘';
+
+  logger.info('Preset comparison table', {
+    table: `\n${tableHeader}\n${tableRows}\n${tableFooter}`
   });
 
-  console.log('└─────────────────┴────────┴──────────┴──────────┴─────────────────────┘\n');
-
   Object.entries(QualityPresets).forEach(([id, preset]) => {
-    console.log(manager.formatPresetInfo(id));
-    console.log('');
+    logger.info('Preset details', {
+      id,
+      info: manager.formatPresetInfo(id)
+    });
   });
 }
 
@@ -249,11 +266,13 @@ export async function selectPresetInteractively(question, options = {}) {
 
   const selectedPreset = await selector.selectPreset(question, options);
 
-  console.log('\n🎯 Auto-selected preset:');
-  console.log(`   ${selectedPreset.name} (${selectedPreset.id})`);
-  console.log(`   Reason: ${selectedPreset.selectionReason}`);
-  console.log(`   Time: ${selectedPreset.estimatedTime}`);
-  console.log(`   Cost: ${selectedPreset.estimatedCost}`);
+  logger.info('Auto-selected preset', {
+    name: selectedPreset.name,
+    id: selectedPreset.id,
+    reason: selectedPreset.selectionReason,
+    estimatedTime: selectedPreset.estimatedTime,
+    estimatedCost: selectedPreset.estimatedCost
+  });
 
   return selectedPreset;
 }

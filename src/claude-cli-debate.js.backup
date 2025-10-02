@@ -319,7 +319,7 @@ class ClaudeCliDebate {
     // Force full mode if no mode specified
     if (!options.mode) {
       options.mode = 'full';
-      logger.info('Using FULL mode with all 7 models (default)');
+      console.log('🚀 Using FULL mode with all 7 models (default)');
     }
 
     // Store original mode in options
@@ -328,7 +328,7 @@ class ClaudeCliDebate {
     // Check cache first if caching is enabled and not bypassed
     if (this.cachingEnabled && !options.bypassCache && !options.fresh) {
       this.progressReporter.setPhase('Checking cache');
-      logger.debug('Checking cache for matching result');
+      console.log('\n💾 CACHE: Checking for cached result...');
 
       const cacheOptions = {
         projectPath,
@@ -343,7 +343,9 @@ class ClaudeCliDebate {
 
         if (cachedResult) {
           const responseTime = Date.now() - startTime;
-          logger.info('Cache HIT - using cached result', { cachedAt: cachedResult.cachedAt, responseTimeMs: responseTime, tokensSaved: this.debateCache.stats.tokensSaved, costSaved: this.debateCache.stats.costSaved.toFixed(4) });
+          console.log(`✅ Cache HIT! Using cached result from ${cachedResult.cachedAt}`);
+          console.log(`⚡ Response time: ${responseTime}ms (vs ~35s for fresh debate)`);
+          console.log(`💰 Tokens saved: ~${this.debateCache.stats.tokensSaved} (estimated cost: $${this.debateCache.stats.costSaved.toFixed(4)})`);
 
           this.progressReporter.complete('Used cached result');
 
@@ -354,21 +356,21 @@ class ClaudeCliDebate {
           };
         }
 
-        logger.debug('Cache MISS - proceeding with fresh debate');
+        console.log('❌ Cache MISS - proceeding with fresh debate');
       } catch (error) {
-        logger.warn('Cache check failed', { error: error.message });
+        console.warn('⚠️ Cache check failed:', error.message);
       }
     } else if (options.bypassCache || options.fresh) {
-      logger.debug('Cache BYPASS - fresh debate requested');
+      console.log('\n🔄 Cache BYPASS - fresh debate requested');
     } else if (!this.cachingEnabled) {
-      logger.debug('Cache DISABLED - proceeding with fresh debate');
+      console.log('\n🚫 Cache DISABLED - proceeding with fresh debate');
     }
 
     // Phase 0: Model Selection (Intelligent, Direct, or All)
     if (modelConfig) {
       // Direct model configuration provided (e.g., "k1:2,k2,k3:3")
       this.progressReporter.setPhase('Parsing direct model configuration');
-      logger.info('PHASE 0: Direct Model Configuration');
+      console.log('\n🎯 PHASE 0: Direct Model Configuration\n');
 
       this.selectedModels = this.parseDirectModelConfig(modelConfig);
       this.selectionAnalysis = {
@@ -379,8 +381,8 @@ class ClaudeCliDebate {
         analysisSource: 'direct-user-config'
       };
 
-      logger.info('Model configuration', { config: modelConfig });
-      logger.info('Models selected', { models: this.selectedModels.map(m => m.name), count: this.selectedModels.length });
+      console.log(`📝 Configuration: ${modelConfig}`);
+      console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
 
       // Count parallel instances
       const totalInstances = this.selectedModels.length;
@@ -388,13 +390,13 @@ class ClaudeCliDebate {
       const parallelInstances = totalInstances - uniqueModels;
 
       if (parallelInstances > 0) {
-        logger.info('Parallel instances configured', { instances: parallelInstances });
-        logger.debug('Instance variety: Different seeds and temperatures for diverse perspectives');
+        console.log(`🔀 Parallel instances: ${parallelInstances} additional instances for enhanced consensus`);
+        console.log(`⚡ Instance variety: Different seeds and temperatures for diverse perspectives`);
       }
 
     } else if (this.currentMode === 'budget') {
       // Budget mode: NOW USES ALL 7 MODELS (k1-k5, k7-k8)
-      logger.info('BUDGET MODE (UPGRADED): Using ALL 7 models');
+      console.log('\n💰 BUDGET MODE (UPGRADED): Using ALL 7 models\n');
       this.selectedModels = this.models
         .filter(m => ['k1', 'k2', 'k3', 'k4', 'k5', 'k7', 'k8'].includes(m.alias))
         .map(m => ({
@@ -403,12 +405,12 @@ class ClaudeCliDebate {
           totalInstances: 1,
           instanceConfig: null
         }));
-      logger.info('All models selected', { models: this.selectedModels.map(m => `${m.alias}=${m.name}`) });
+      console.log('🤖 All models:', this.selectedModels.map(m => `${m.alias}=${m.name}`).join(', '));
 
     } else if (this.useIntelligentSelection) {
       // Intelligent model selection using Gemini Coordinator
       this.progressReporter.setPhase('Analyzing question for optimal model selection');
-      logger.info('PHASE 0: Intelligent Model Selection');
+      console.log('\n🧠 PHASE 0: Intelligent Model Selection\n');
 
       try {
         this.selectionAnalysis = await this.geminiCoordinator.analyzeQuestion(question, {
@@ -418,15 +420,15 @@ class ClaudeCliDebate {
 
         this.selectedModels = this.getSelectedModelsFromAnalysis(this.selectionAnalysis);
 
-        logger.info('Model selection analysis', { category: this.selectionAnalysis.category, complexity: this.selectionAnalysis.complexityLevel, criticality: this.selectionAnalysis.criticalityLevel });
-        logger.info('Models selected', { models: this.selectedModels.map(m => m.name), count: this.selectedModels.length });
-        logger.info('Cost optimization', { reduction: this.selectionAnalysis.costReduction });
-        logger.info('Speed optimization', { gain: this.selectionAnalysis.estimatedSpeedGain });
-        logger.debug('Analysis source', { source: this.selectionAnalysis.analysisSource });
-        logger.debug('Selection reasoning', { reasoning: this.selectionAnalysis.reasoning });
+        console.log(`📊 Analysis: ${this.selectionAnalysis.category} (${this.selectionAnalysis.complexityLevel}/${this.selectionAnalysis.criticalityLevel})`);
+        console.log(`🎯 Selected models: ${this.selectedModels.map(m => m.name).join(', ')} (${this.selectedModels.length} models)`);
+        console.log(`💰 Cost reduction: ${this.selectionAnalysis.costReduction}%`);
+        console.log(`⚡ Speed improvement: ${this.selectionAnalysis.estimatedSpeedGain}`);
+        console.log(`🤖 Analysis source: ${this.selectionAnalysis.analysisSource}`);
+        console.log(`📝 Reasoning: ${this.selectionAnalysis.reasoning}`);
 
       } catch (error) {
-        logger.warn('Intelligent selection failed, using all models', { error: error.message });
+        console.warn('⚠️ Intelligent selection failed, using all models:', error.message);
         this.selectedModels = this.models.map(m => ({
           ...m,
           instanceId: 1,
@@ -437,22 +439,22 @@ class ClaudeCliDebate {
       }
     } else {
       // Use all available models (fallback)
-      logger.info('Using all available models (intelligent selection disabled)');
+      console.log('\n📋 Using all available models (intelligent selection disabled)');
       this.selectedModels = this.models.map(m => ({
         ...m,
         instanceId: 1,
         totalInstances: 1,
         instanceConfig: null
       }));
-      logger.info('Models configured', { models: this.models.map(m => `${m.alias}=${m.name}`) });
+      console.log('🤖 Models:', this.models.map(m => `${m.alias}=${m.name}`).join(', '));
     }
 
-    logger.debug('='.repeat(70));
+    console.log('\n' + '='.repeat(70) + '\n');
 
     try {
       // Round 1: Get proposals
       this.progressReporter.setPhase('Round 1: Independent Analysis with Tool Access');
-      logger.info('ROUND 1: Independent Analysis with Tool Access');
+      console.log('🔄 ROUND 1: Independent Analysis with Tool Access\n');
       const proposals = await this.getProposals(question, projectPath, options);
     
       if (Object.keys(proposals).length < 2) {
@@ -463,8 +465,8 @@ class ClaudeCliDebate {
       // Select best using semantic scoring
       this.progressReporter.setPhase('Evaluating proposals');
       const best = await this.selectBestSemantic(proposals, question);
-      logger.info('Best proposal selected', { model: best.model, score: best.score.total.toFixed(2) });
-      // Score details logged in previous statement
+      console.log(`\n🏆 Best proposal: ${best.model}`);
+      console.log(`   Score: ${best.score.total.toFixed(2)} (R:${(best.score.components.relevance*100).toFixed(0)}% Q:${(best.score.components.quality*100).toFixed(0)}%)`);
 
       this.progressReporter.progress(`Selected best proposal: ${best.model}`, {
         model: best.model,
@@ -509,7 +511,7 @@ class ClaudeCliDebate {
               'Verification skipped'
           });
         } catch (error) {
-          logger.error('Cross-verification failed', { error: error.message });
+          console.error('⚠️ Cross-verification failed:', error.message);
           verificationResults = {
             enabled: false,
             error: error.message
@@ -519,7 +521,7 @@ class ClaudeCliDebate {
 
       // Round 2: Improvements
       this.progressReporter.setPhase('Round 2: Collaborative Improvements with Tools');
-      logger.info('ROUND 2: Collaborative Improvements with Tools');
+      console.log('\n🔄 ROUND 2: Collaborative Improvements with Tools\n');
       const improvements = await this.getImprovements(best, question, projectPath, options);
 
       this.progressReporter.progress('Improvements collected', {
@@ -529,12 +531,12 @@ class ClaudeCliDebate {
 
       // Round 3: Final synthesis
       this.progressReporter.setPhase('Round 3: Final Synthesis');
-      logger.info('ROUND 3: Final Synthesis');
+      console.log('\n🔧 ROUND 3: Final Synthesis\n');
       const final = await this.synthesize(best, improvements, question, verificationResults);
 
       // Calculate confidence score
       this.progressReporter.setPhase('Calculating Confidence Score');
-      logger.info('PHASE 4: Confidence Analysis');
+      console.log('\n📊 PHASE 4: Confidence Analysis\n');
 
       const debateData = {
         question,
@@ -550,10 +552,10 @@ class ClaudeCliDebate {
 
       const confidence = await this.confidenceScorer.calculateConfidence(debateData);
 
-      logger.info('Confidence analysis complete', { score: confidence.score, level: confidence.level });
-      logger.debug('Confidence factors', confidence.factors);
-      logger.info('Recommendation', { recommendation: confidence.recommendation });
-      logger.debug('Analysis summary', { summary: confidence.analysis.summary });
+      console.log(`🎯 Confidence Score: ${confidence.score}% (${confidence.level})`);
+      console.log(`📈 Factors: Agreement=${confidence.factors.model_agreement}%, Verification=${confidence.factors.verification_passed}%, History=${confidence.factors.historical_accuracy}%, Consistency=${confidence.factors.response_consistency}%`);
+      console.log(`💡 Recommendation: ${confidence.recommendation}`);
+      console.log(`📋 Analysis: ${confidence.analysis.summary}`);
 
       // Process debate for learning
       if (this.learningEnabled) {
@@ -571,7 +573,7 @@ class ClaudeCliDebate {
 
           await this.learningSystem.processDebate(debateResult);
         } catch (error) {
-          logger.warn('Learning system processing failed', { error: error.message });
+          console.warn('⚠️ Learning system processing failed:', error.message);
         }
       }
 
@@ -603,9 +605,9 @@ class ClaudeCliDebate {
           };
 
           await this.performanceTracker.recordDebate(debateResult, metadata);
-          logger.debug('Performance data recorded successfully');
+          console.log('📊 Performance data recorded successfully');
         } catch (error) {
-          logger.warn('Performance tracking failed', { error: error.message });
+          console.warn('⚠️ Performance tracking failed:', error.message);
         }
       }
 
@@ -644,11 +646,10 @@ class ClaudeCliDebate {
 
           await this.debateCache.store(question, result, cacheOptions);
 
-          logger.info('Result cached for future use');
-          const stats = this.debateCache.getStats();
-          logger.info('Cache statistics', { hits: stats.hits, misses: stats.misses, hitRate: Math.round(stats.hitRate * 100) });
+          console.log(`💾 Result cached for future use`);
+          console.log(`📊 Cache stats: ${this.debateCache.getStats().hits} hits / ${this.debateCache.getStats().misses} misses (${Math.round(this.debateCache.getStats().hitRate * 100)}% hit rate)`);
         } catch (error) {
-          logger.warn('Failed to cache result', { error: error.message });
+          console.warn('⚠️ Failed to cache result:', error.message);
         }
       }
 
@@ -673,7 +674,7 @@ class ClaudeCliDebate {
     try {
       const result = await this.retryHandler.execute(
         async () => {
-          logger.debug('Starting Claude CLI for model', { model: model.name });
+          console.error(`  🔄 ${model.name} - Starting Claude CLI...`);
 
           // Update model status to starting
           this.progressReporter.updateModelStatus(model.name, 'starting');
@@ -736,7 +737,7 @@ INSTRUCTIONS:
 
           // Update status to completed
           this.progressReporter.updateModelStatus(model.name, 'completed');
-          logger.info('Model completed', { model: model.name, duration, responseLength: result.length });
+          console.error(`  ✅ ${model.name} completed (${duration}s, ${result.length} chars)`);
 
           // Track model timing for performance analysis
           if (this.trackingEnabled && this.debateMetrics) {
@@ -754,7 +755,7 @@ INSTRUCTIONS:
       return result;
 
     } catch (error) {
-      logger.error('Model failed after all retry attempts', { model: model.name, error: error.message });
+      console.error(`  🚫 ${model.name} failed after all retry attempts:`, error.message);
       this.progressReporter.updateModelStatus(model.name, 'failed');
 
       // Track failed models for performance analysis
@@ -765,13 +766,13 @@ INSTRUCTIONS:
       // If it's a RetryError, log additional details
       if (error.name === 'RetryError') {
         const details = error.getDetails();
-        logger.debug('Retry details', { attempts: details.attemptCount, errorType: details.errorType });
-        logger.debug('Failure reason', { reason: details.reason });
+        console.error(`  📊 Retry details: ${details.attemptCount} attempts, error type: ${details.errorType}`);
+        console.error(`  💡 Failure reason: ${details.reason}`);
 
         // Log retry statistics
         const stats = this.retryHandler.getStats();
         if (stats.totalAttempts > 0) {
-          logger.debug('Retry statistics', { successRate: Math.round(stats.successRate * 100), avgRetryCount: stats.avgRetryCount.toFixed(1) });
+          console.error(`  📈 Retry stats: ${Math.round(stats.successRate * 100)}% success rate, avg ${stats.avgRetryCount.toFixed(1)} retries`);
         }
       }
 
@@ -955,7 +956,7 @@ INSTRUCTIONS:
    * Run parallel instances of the same model and synthesize results
    */
   async runParallelInstances(baseModel, instanceConfigs, question, projectPath, options = {}) {
-    logger.info('Running parallel instances', { instances: instanceConfigs.length, model: baseModel.name });
+    console.log(`  🔀 Running ${instanceConfigs.length} parallel instances of ${baseModel.name}...`);
 
     const instancePromises = instanceConfigs.map(async (instanceConfig, index) => {
       const instanceModel = {
@@ -987,17 +988,17 @@ Instance focus: ${instanceConfig.focus}`;
       .map(r => r.value);
 
     if (successfulResults.length === 0) {
-      logger.error('All instances failed', { model: baseModel.name });
+      console.log(`  ❌ All instances of ${baseModel.name} failed`);
       return null;
     }
 
     if (successfulResults.length === 1) {
-      logger.warn('Partial success', { model: baseModel.name, succeeded: 1, total: instanceConfigs.length });
+      console.log(`  ✅ ${baseModel.name}: 1/${instanceConfigs.length} instances succeeded`);
       return successfulResults[0].result;
     }
 
     // Synthesize multiple instance results
-    logger.debug('Synthesizing instances', { successful: successfulResults.length, total: instanceConfigs.length, model: baseModel.name });
+    console.log(`  🔄 Synthesizing ${successfulResults.length}/${instanceConfigs.length} instances of ${baseModel.name}...`);
     return await this.synthesizeInstanceResults(baseModel, successfulResults, question);
   }
 
@@ -1066,7 +1067,7 @@ This solution was synthesized from ${instanceResults.length} parallel instances 
 ${instanceResults.map(r => `- Instance ${r.instanceConfig.instanceId}: ${r.instanceConfig.focus}`).join('\n')}`;
       }
     } catch (error) {
-      logger.warn('Synthesis failed, using best instance', { model: baseModel.name, error: error.message });
+      console.warn(`Synthesis failed for ${baseModel.name}, using best instance result:`, error.message);
     }
 
     // Fallback: use the longest/most detailed response
@@ -1116,7 +1117,7 @@ This is the best result from ${instanceResults.length} parallel instances of ${b
     const totalInstances = Object.values(modelGroups)
       .reduce((sum, group) => sum + group.instances.length, 0);
 
-    logger.info('Requesting proposals', { baseModels: Object.keys(modelGroups).length, totalInstances, toolAccess: true });
+    console.log(`Requesting proposals from ${Object.keys(modelGroups).length} base models (${totalInstances} total instances) with tool access...`);
 
     // Run model groups in parallel
     const modelGroupPromises = Object.entries(modelGroups).map(async ([alias, group]) => {
@@ -1167,15 +1168,15 @@ Your expertise: ${baseModel.expertise}`;
         const { baseModel, result: modelResult, modelTime, instanceCount } = result.value;
         proposals[baseModel.name] = modelResult;
         const instanceInfo = instanceCount > 1 ? ` (${instanceCount} instances)` : '';
-        logger.info('Model/instance completed', { model: baseModel.name + instanceInfo, time: modelTime, responseLength: modelResult.length });
+        console.log(`  ✅ ${baseModel.name}${instanceInfo} completed (${modelTime}s, ${modelResult.length} chars)`);
       } else {
         const error = result.reason?.value?.baseModel?.name || 'Unknown model';
-        logger.error('Model/instance failed', { model: error, reason: result.reason?.message || 'Unknown error' });
+        console.log(`  ❌ ${error} failed: ${result.reason?.message || 'Unknown error'}`);
       }
     });
 
     const totalTime = Math.round((Date.now() - startTime) / 1000);
-    logger.info('Proposal round completed', { responded: Object.keys(proposals).length, total: Object.keys(modelGroups).length, totalTime });
+    console.log(`\n📊 Proposal round completed: ${Object.keys(proposals).length}/${Object.keys(modelGroups).length} model groups responded (${totalTime}s total)`);
 
     return proposals;
   }
@@ -1188,7 +1189,7 @@ Your expertise: ${baseModel.expertise}`;
     const evaluation = await this.semanticEvaluator.evaluateResponses(question, proposals);
     
     // Print evaluation summary
-    logger.info('Evaluation summary', { summary: this.semanticEvaluator.formatEvaluationSummary(evaluation) });
+    console.log(this.semanticEvaluator.formatEvaluationSummary(evaluation));
     
     // Extract the best response
     const bestModel = evaluation.best_response.model;
@@ -1226,7 +1227,7 @@ Your expertise: ${baseModel.expertise}`;
     const improvementPromises = modelsToUse
       .filter(model => model.name !== best.model)
       .map(async (model) => {
-        logger.debug('Model reviewing with tools', { model: model.name });
+        console.log(`  ${model.name} reviewing with tools...`);
         
         const prompt = `Review and improve this solution using your tools and expertise.
 
@@ -1255,7 +1256,7 @@ Provide specific improvements and enhancements.`;
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value.result) {
         improvements[result.value.model] = result.value.result;
-        logger.info('Model provided improvements', { model: result.value.model });
+        console.log(`  ✅ ${result.value.model} provided improvements`);
       }
     });
     
@@ -1393,7 +1394,7 @@ Provide specific improvements and enhancements.`;
 
     const logFile = path.join(this.logsDir, `claude_cli_debate_${Date.now()}.json`);
     await fs.writeFile(logFile, JSON.stringify(logData, null, 2));
-    logger.debug('Log saved', { file: logFile });
+    console.log(`\n💾 Log saved: ${logFile}`);
   }
 
   /**
@@ -1418,7 +1419,7 @@ Provide specific improvements and enhancements.`;
       throw new Error('Caching is disabled');
     }
     this.debateCache.clear();
-    logger.info('Cache cleared successfully');
+    console.log('🗑️ Cache cleared successfully');
   }
 
   /**
@@ -1429,7 +1430,7 @@ Provide specific improvements and enhancements.`;
       throw new Error('Caching is disabled');
     }
     const invalidatedCount = await this.debateCache.invalidateByContext(projectPath);
-    logger.info('Cache entries invalidated', { count: invalidatedCount, project: projectPath });
+    console.log(`🔄 Invalidated ${invalidatedCount} cache entries for project: ${projectPath}`);
     return invalidatedCount;
   }
 
@@ -1441,25 +1442,25 @@ Provide specific improvements and enhancements.`;
       throw new Error('Caching is disabled');
     }
 
-    logger.info('Starting cache warming', { questionCount: questions.length });
+    console.log(`🔥 Starting cache warming with ${questions.length} questions...`);
     const results = [];
 
     for (const question of questions) {
       try {
-        logger.debug('Warming cache for question', { question: question.substring(0, 50) });
+        console.log(`🔥 Warming cache for: ${question.substring(0, 50)}...`);
         const result = await this.runDebate(question, options.projectPath, options.modelConfig, {
           ...options,
           bypassCache: false // Ensure we don't bypass cache during warming
         });
         results.push({ question, success: true, result });
       } catch (error) {
-        logger.warn('Failed to warm cache for question', { error: error.message });
+        console.warn(`Failed to warm cache for question: ${error.message}`);
         results.push({ question, success: false, error: error.message });
       }
     }
 
     const successCount = results.filter(r => r.success).length;
-    logger.info('Cache warming completed', { successful: successCount, total: questions.length });
+    console.log(`🔥 Cache warming completed: ${successCount}/${questions.length} questions processed`);
 
     return {
       total: questions.length,
@@ -1492,7 +1493,7 @@ Provide specific improvements and enhancements.`;
 
     this.cacheInvalidator.configure(options);
 
-    logger.info('Cache configuration updated', {
+    console.log('🔧 Cache configuration updated:', {
       maxAge: this.debateCache.maxAge,
       maxEntries: this.debateCache.maxEntries,
       minConfidence: this.cacheInvalidator.minConfidence
@@ -1521,7 +1522,7 @@ Provide specific improvements and enhancements.`;
    */
   resetRetryStats() {
     this.retryHandler.resetStats();
-    logger.info('Retry statistics reset');
+    console.log('🔄 Retry statistics reset');
   }
 
   /**
@@ -1530,7 +1531,7 @@ Provide specific improvements and enhancements.`;
    */
   configureRetry(newConfig = {}) {
     this.retryHandler.updateConfig(newConfig);
-    logger.info('Retry configuration updated', newConfig);
+    console.log('🔄 Retry configuration updated:', newConfig);
   }
 }
 
