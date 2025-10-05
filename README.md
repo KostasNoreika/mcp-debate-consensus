@@ -90,7 +90,7 @@ npm start                   # Start MCP server
 
 # 5. Test the system
 npm run test:security       # Test security implementation
-node test-debate.js "What's the best architecture for a real-time chat app?"
+npm run test:debate "What's the best architecture for a real-time chat app?"
 
 # 6. Register with Claude CLI
 # Add to ~/.claude.json:
@@ -188,22 +188,22 @@ graph TD
 
 1. **System Architecture Design**
    ```bash
-   node test-debate.js "Design a scalable microservices architecture for an e-commerce platform"
+   npm run test:debate "Design a scalable microservices architecture for an e-commerce platform"
    ```
 
 2. **Code Review and Optimization**
    ```bash
-   node test-debate.js "Review and optimize the performance of our React application"
+   npm run test:debate "Review and optimize the performance of our React application"
    ```
 
 3. **Security Analysis**
    ```bash
-   node test-debate.js "Analyze security vulnerabilities in our authentication system"
+   npm run test:debate "Analyze security vulnerabilities in our authentication system"
    ```
 
 4. **Technology Selection**
    ```bash
-   node test-debate.js "Choose the best database for our real-time analytics platform"
+   npm run test:debate "Choose the best database for our real-time analytics platform"
    ```
 
 ## 🛠️ Installation
@@ -390,7 +390,7 @@ curl -X POST http://localhost:3457/v1/chat/completions -H "Content-Type: applica
 npm test                     # 279 passed, 4 failed = 98.5% success rate
 
 # Test debate functionality
-node test-debate.js "Your question here"
+npm run test:debate "Your question here"
 
 # Test security implementation
 npm run test:security        # Enterprise security features

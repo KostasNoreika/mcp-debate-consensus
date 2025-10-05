@@ -46,7 +46,7 @@ npm run test:cache          # Smart caching
 npm run test:learning       # ML learning system
 
 # Direct testing
-node test-debate.js "question"    # Test debate directly
+npm run test:debate "question"    # Test debate directly
 npm run test:all                  # Security + full suite
 ```
 
@@ -186,7 +186,7 @@ Add to `~/.claude.json`:
 ### Testing Models
 1. Run `node health-check.js` - verify proxy servers
 2. Check individual: `curl http://localhost:3457/health`
-3. Test with question: `node test-debate.js "What is 2+2?"`
+3. Test with question: `npm run test:debate "What is 2+2?"`
 4. Review logs in `/logs/debate-*.json` for debugging
 
 ### Common Issues
@@ -215,7 +215,7 @@ Add to `~/.claude.json`:
 **Retry failures:**
 - Check .env retry configuration
 - Review retry statistics in debate results
-- Test: `node test-retry-functionality.js`
+- Test: `node examples/test-retry-functionality.js`
 
 ## Code Architecture
 
@@ -252,7 +252,7 @@ Enhances diversity and consensus quality.
 - `tests/unit/` - Component unit tests
 - `tests/integration/` - Integration tests
 - `tests/e2e/` - End-to-end workflows
-- `test-*.js` (root) - Direct functional tests
+- `examples/` - Demo scripts and feature testing examples
 
 ### Running Single Tests
 ```bash

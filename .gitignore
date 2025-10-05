@@ -62,9 +62,26 @@ cache/*.json
 # Task Files (Internal)
 /tasks/
 
+# Test Files (obsolete test-*.js in root only, not examples/)
+/test-*.js
+
 # Codex AI Internal
 AGENTS.md
 
-# Generated Reports
+# Generated Reports and Temporary Documentation
 *_REPORT.md
-*_SUMMARY.md.claude.json
+*_SUMMARY.md
+*_IMPLEMENTATION.md
+*_COMPLETION.md
+PROJECT_STATUS.md
+ARCHITECTURE_IMPROVEMENTS.md
+CONFIDENCE_SCORING_IMPLEMENTATION.md
+SECURITY_REPORT.md
+ITERATIVE-DEBATE-ARCHITECTURE.md
+CHANGES.md
+LOGGING_REFACTORING_SUMMARY.md
+PROXY_SERVER_TEST_FIXES.md
+COVERAGE_IMPROVEMENT_REPORT.md
+RELEASE_SUMMARY_*.md
+simulated-debate-responses.md
+data/reports/*.md.claude.json
