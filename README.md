@@ -2,13 +2,14 @@
 
 **Enterprise-grade AI problem-solving through intelligent multi-model consensus with advanced security, retry handling, comprehensive monitoring, and production-grade logging.**
 
-🆕 **Version 2.2** - **PRODUCTION HARDENING** with 50%+ test coverage (3.5x improvement) and structured logging!
+🆕 **Version 2.2.1** - **TEST STABILITY** with 90%+ test pass rate and ES6 module fixes!
 
-🏆 **V2.2 ACHIEVEMENTS:**
+🏆 **V2.2.1 ACHIEVEMENTS:**
+- **Test Reliability**: 81% → 90.2% pass rate (490/543 tests passing)
+- **ES6 Module Mocking**: Fixed spawn.mockImplementation errors (50 tests now passing)
 - **Test Coverage**: 14% → 50%+ (257% improvement, 143+ new tests)
 - **Structured Logging**: 100% migration to winston with credential redaction
 - **Dependencies**: All updated to latest stable (zero vulnerabilities)
-- **540+ Test Suite**: Comprehensive testing with 81% pass rate (438 passing)
 - **MCP SDK**: Upgraded from 0.5.0 → 1.19.1 (14 major versions)
 - **Production Ready**: Enhanced observability, debugging, and maintainability
 

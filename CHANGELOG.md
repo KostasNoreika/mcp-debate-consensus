@@ -5,6 +5,38 @@ All notable changes to the AI Expert Consensus MCP Server project will be docume
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2025-10-05
+
+### 🔧 BUGFIX RELEASE - ES6 Module Testing Stability
+
+Critical fix for test infrastructure with ES6 module mocking.
+
+### Fixed
+
+#### 🧪 Test Infrastructure
+- **ES6 Module Mocking**: Resolved `TypeError: spawn.mockImplementation is not a function` affecting 50 tests
+  - Implemented `jest.unstable_mockModule()` for child_process mocking
+  - Fixed import order: spawn and ClaudeCliDebate imported AFTER mock setup
+  - Added `__mocks__/child_process.js` manual mock
+  - Used top-level await with dynamic imports for proper ESM support
+
+- **Test Assertions**:
+  - Fixed floating-point precision in temperature diversity test (use `toBeCloseTo()`)
+  - Fixed timing assertion in model timing test (`toBeGreaterThanOrEqual()`)
+
+### Improved
+
+#### 📊 Test Reliability
+- **Pass Rate**: 81% → 90.2% (490/543 tests passing)
+- **claude-cli-debate.test.js**: 0/50 → 50/50 tests passing (100% fix)
+- Zero spawn mocking errors across test suite
+
+### Technical Details
+
+- ES6 modules require special handling in Jest with `jest.unstable_mockModule()`
+- Dynamic imports with `await import()` must occur after mock registration
+- Top-level await syntax works correctly in Jest 30.x with `--experimental-vm-modules`
+
 ## [2.2.0] - 2025-10-02
 
 ### 🎯 PRODUCTION HARDENING RELEASE
