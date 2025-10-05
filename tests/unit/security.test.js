@@ -5,7 +5,20 @@
 
 import { jest } from '@jest/globals';
 
-// Import the Security class directly - it now handles test environments internally
+// Mock logger before importing security
+const mockLogger = {
+  audit: jest.fn(),
+  security: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn()
+};
+
+jest.unstable_mockModule('../../src/utils/logger.js', () => ({
+  default: mockLogger
+}));
+
+// Import the Security class after mocking logger
 const { Security } = await import('../../src/security.js');
 
 describe('Security', () => {
@@ -359,7 +372,7 @@ describe('Security', () => {
 
   describe('Audit Middleware', () => {
     test('should log request details', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      mockLogger.audit.mockClear();
       const middleware = security.auditMiddleware();
 
       const mockReq = {
@@ -374,14 +387,12 @@ describe('Security', () => {
 
       middleware(mockReq, mockRes, mockNext);
 
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockLogger.audit).toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
 
     test('should detect suspicious patterns', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      mockLogger.security.mockClear();
       const middleware = security.auditMiddleware();
 
       const suspiciousReq = {
@@ -396,13 +407,11 @@ describe('Security', () => {
 
       middleware(suspiciousReq, mockRes, mockNext);
 
-      // Check that console.warn was called with the expected first argument (string)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Suspicious request detected'),
+      // Check that logger.security was called to log suspicious request
+      expect(mockLogger.security).toHaveBeenCalledWith(
+        'Suspicious request detected',
         expect.any(Object)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 

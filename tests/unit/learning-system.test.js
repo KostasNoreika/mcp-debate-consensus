@@ -5,6 +5,18 @@
 
 import { jest } from '@jest/globals';
 
+// Mock logger
+const mockLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn()
+};
+
+jest.unstable_mockModule('../../src/utils/logger.js', () => ({
+  default: mockLogger
+}));
+
 // Mock fs/promises - fix the import issue
 const fsMocks = {
   mkdir: jest.fn(),
@@ -262,13 +274,12 @@ describe('LearningSystem', () => {
 
     test('should handle processing errors gracefully', async () => {
       mockModelProfiler.updateAfterDebate.mockRejectedValue(new Error('Update failed'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockLogger.error.mockClear();
 
       const debateResult = { question: 'test', responses: [] };
       await learningSystem.processDebate(debateResult);
 
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 
@@ -298,13 +309,12 @@ describe('LearningSystem', () => {
 
     test('should handle pattern detection failures', async () => {
       mockPatternDetector.detectPatterns.mockRejectedValue(new Error('Detection failed'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockLogger.error.mockClear();
 
       const patterns = await learningSystem.analyzeQuestionPatterns();
 
       expect(patterns).toEqual({ patterns: [], error: 'Detection failed' });
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 
