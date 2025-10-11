@@ -94,9 +94,16 @@ function createProxyServer(kInstance) {
     }
   }));
 
-  // Apply signature validation (can be disabled for backward compatibility)
+  // Apply signature validation (exempt health/monitoring endpoints)
   if (process.env.ENABLE_REQUEST_SIGNING !== 'false') {
-    app.use(security.signatureMiddleware());
+    app.use((req, res, next) => {
+      // Skip signature validation for health and monitoring endpoints
+      if (req.path === '/health' || req.path === '/security/status') {
+        return next();
+      }
+      // Apply signature middleware for all other routes
+      return security.signatureMiddleware()(req, res, next);
+    });
   }
 
   const model = modelMap[kInstance];
