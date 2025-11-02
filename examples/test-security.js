@@ -5,7 +5,7 @@
  * Tests request signing, rate limiting, and security middleware
  */
 
-import { Security } from './src/security.js';
+import { Security } from '../src/security.js';
 import axios from 'axios';
 import crypto from 'crypto';
 import express from 'express';

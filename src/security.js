@@ -105,30 +105,31 @@ class Security {
         /'[^']*'\s*(or|and)\s+['"]/gi,  // ' OR ' patterns
         /'\s*or\s+['"]?1['"]?\s*=\s*['"]?1['"]?/gi,  // ' OR 1=1 patterns
         /'\s*or\s+['"]?[^'"]*['"]?\s*=\s*['"]?[^'"]*['"]?/gi,  // Generic OR equality
-        /--/gi,  // SQL comments
+        /\s--\s/gi,  // SQL comments (requires space before -- to avoid date formats like 2025-10-24)
         /;\s*(drop|insert|update|delete|select)/gi,
         /sleep\s*\(/gi,
-        /\/\*.*?\*\//gi,  // SQL block comments
-        /\/\*/gi,  // Incomplete SQL block comments (start)
-        /\*\//gi,  // Incomplete SQL block comments (end)
+        /\/\*\s*(drop|select|delete|insert|update)/gi,  // SQL block comments (only if followed by SQL keywords)
+        /\/\*\*\//gi,  // Incomplete SQL block comments (empty block)
 
-        // Command injection
-        /[;&|`$]/gi,
-        /\$\([^)]*\)/gi,
-        /`[^`]*`/gi,
+        // Command injection (more precise patterns to avoid false positives)
+        /;\s*(rm|cat|wget|curl|nc|python|bash|sh|eval|exec)/gi,  // Semicolon followed by dangerous commands
+        /\|\s*(rm|cat|wget|curl|nc|python|bash|sh|eval|exec)/gi,  // Pipe followed by dangerous commands
+        /`[^`]*`/gi,  // Backtick command substitution
+        /\$\((?:rm|cat|wget|curl|nc|python|bash|sh|eval|exec)[^)]*\)/gi,  // $() with dangerous commands
         /rm\s+-rf/gi,
         /cat\s+\/etc\/passwd/gi,
-        /wget\s+/gi,
-        /curl\s+/gi,
-        /nc\s+/gi,
+        /wget\s+http/gi,  // More specific - wget with URL
+        /curl\s+http/gi,  // More specific - curl with URL
+        /nc\s+-/gi,  // netcat with flags
         /python\s+-c/gi,
 
-        // Path traversal
-        this.PATH_TRAVERSAL_REGEX,
-        /file:\/\//gi,
-        /\.\.\/|\.\.%2[fF]/gi,
-        /\.\.\\|\.\.%5[cC]/gi,
-        /%00/gi,
+        // Path traversal (more specific for actual path attacks)
+        /\.\.\/[\/\w]/gi,  // ../ followed by path characters (not just ellipsis in text)
+        /\.\.\\[\\w]/gi,  // ..\ followed by path characters
+        /file:\/\/\/[a-z]/gi,  // file:/// protocol with path
+        /\.\.%2[fF]/gi,  // URL encoded ../
+        /\.\.%5[cC]/gi,  // URL encoded ..\
+        /%00/gi,  // Null byte
 
         // Encoded attacks - Enhanced patterns
         /%3c%73%63%72%69%70%74/gi,
@@ -623,12 +624,48 @@ class Security {
       throw new Error('Question must be a non-empty string');
     }
 
-    // Validate input
-    if (!this.validateInput(question)) {
-      throw new Error('Question contains invalid characters or patterns');
+    // Sanitize input instead of rejecting - remove dangerous patterns but keep content
+    const sanitized = this.sanitizeInput(question);
+
+    // Still check length after sanitization
+    if (sanitized.length > this.MAX_QUESTION_LENGTH) {
+      throw new Error(`Question too long (max ${this.MAX_QUESTION_LENGTH} characters)`);
     }
 
-    return question;
+    return sanitized;
+  }
+
+  /**
+   * Sanitize input by removing dangerous patterns while preserving content
+   */
+  sanitizeInput(input) {
+    if (!input || typeof input !== 'string') {
+      return '';
+    }
+
+    let sanitized = input;
+
+    // Remove actual script tags and event handlers (XSS protection)
+    sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+    sanitized = sanitized.replace(/<iframe/gi, '');
+
+    // Remove dangerous command patterns (but keep text mentions like "curl" or "wget")
+    sanitized = sanitized.replace(/;\s*(rm|cat)\s+/gi, '; '); // Remove command after semicolon
+    sanitized = sanitized.replace(/\|\s*(rm|cat)\s+/gi, '| '); // Remove command after pipe
+    sanitized = sanitized.replace(/`[^`]*`/gi, ''); // Remove backtick substitution
+    sanitized = sanitized.replace(/rm\s+-rf\s+[\/\w]/gi, ''); // Remove rm -rf with path
+
+    // Remove null bytes
+    sanitized = sanitized.replace(/\x00/g, '');
+    sanitized = sanitized.replace(/%00/gi, '');
+
+    // Note: We intentionally keep mentions of protocols (mailto:, file:, ftp:)
+    // because they're often part of legitimate technical discussions
+    // The MCP server context doesn't execute these, so they're not dangerous
+
+    return sanitized;
   }
 
   /**
