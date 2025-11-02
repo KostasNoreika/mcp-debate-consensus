@@ -1,6 +1,6 @@
 {
   "name": "ai-expert-consensus",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Enterprise-grade AI consensus through intelligent multi-model orchestration with learning, caching, and confidence scoring",
   "main": "index.js",
   "repository": {

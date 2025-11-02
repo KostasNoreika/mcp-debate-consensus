@@ -207,6 +207,13 @@ Add to `~/.claude.json`:
 - Test: `npm run test:security`
 - Check signature validation in logs
 
+**"Invalid characters" errors:**
+- FIXED in v2.2.2: Input is now sanitized instead of rejected
+- Technical discussions with mailto:, file:, protocols work fine
+- Questions mentioning commands (curl, wget, rm) are allowed
+- Actual attacks (<script>, rm -rf /, etc.) are still blocked
+- No more cryptic "invalid characters" errors for legitimate content
+
 **Cache issues:**
 - Auto-invalidates after 24 hours
 - Manual clear: `rm -rf cache/debate-cache.json`
