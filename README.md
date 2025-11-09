@@ -1,17 +1,17 @@
-# AI Expert Consensus v2.2 - MCP Server
+# AI Expert Consensus v2.2.2 - MCP Server
 
 **Enterprise-grade AI problem-solving through intelligent multi-model consensus with advanced security, retry handling, comprehensive monitoring, and production-grade logging.**
 
-🆕 **Version 2.2.1** - **TEST STABILITY** with 90%+ test pass rate and ES6 module fixes!
+🆕 **Version 2.2.2** - **INTELLIGENT PROMPT ENHANCEMENT** + 9 specialized models with 99.5% test reliability!
 
-🏆 **V2.2.1 ACHIEVEMENTS:**
-- **Test Reliability**: 81% → 90.2% pass rate (490/543 tests passing)
-- **ES6 Module Mocking**: Fixed spawn.mockImplementation errors (50 tests now passing)
-- **Test Coverage**: 14% → 50%+ (257% improvement, 143+ new tests)
-- **Structured Logging**: 100% migration to winston with credential redaction
-- **Dependencies**: All updated to latest stable (zero vulnerabilities)
-- **MCP SDK**: Upgraded from 0.5.0 → 1.19.1 (14 major versions)
-- **Production Ready**: Enhanced observability, debugging, and maintainability
+🏆 **V2.2.2 NEW FEATURES:**
+- **🎯 Automatic Prompt Enhancement**: Gemini Flash-powered question improvement with intent preservation
+- **🧠 9 Specialized Models**: Added k6 (GPT-5 Max Thinking), k7 (Kimi K2), k8 (GLM-4.6), k9 (Polaris Alpha)
+- **⚡ Ultra-Fast Reasoning**: Polaris Alpha provides GPT-5.1-level quality in 3-5 seconds
+- **📊 Input Sanitization**: UX improvement - sanitizes dangerous patterns instead of rejecting (v2.2.2)
+- **✅ Test Reliability**: 98.8% → 99.5% pass rate (561/564 tests passing)
+- **📚 Enhanced Documentation**: Complete CLAUDE.md guide with all model specifications
+- **🔧 Git Cleanup**: Runtime data properly gitignored, clean repository structure
 
 ## 🎯 Why This Matters
 
@@ -19,7 +19,9 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 
 ### Key Differentiators
 
-- **🧠 Intelligent Model Selection**: Gemini-powered coordinator automatically selects optimal models based on question analysis
+- **✨ Automatic Prompt Enhancement**: Gemini Flash analyzes and improves vague questions while preserving intent
+- **🧠 9 Specialized AI Models**: Claude, GPT-5, Qwen, Gemini, Grok, Kimi, GLM, Polaris for diverse expertise
+- **🎯 Intelligent Model Selection**: Gemini-powered coordinator automatically selects optimal models based on question analysis
 - **📊 Performance Tracking**: SQLite-based tracking across 70+ universal categories (not just programming)
 - **⚡ Parallel Processing**: Support for multiple instances per model (e.g., `k1:2,k2:3` for parallel analysis)
 - **🔒 Cross-Verification**: Adversarial testing for critical scenarios (security, finance, legal)
@@ -27,7 +29,6 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 - **💯 Confidence Scoring**: 0-100% scores with detailed breakdowns and recommendations
 - **💰 Smart Caching**: 90% cost reduction on repeated questions with intelligent invalidation
 - **📡 Real-time Streaming**: Progressive updates showing debate progress and interim results
-- **🎯 Quality Presets**: Rapid/Balanced/Maximum modes for speed vs quality trade-offs
 - **🔧 Full MCP Access**: Each model can read files, execute commands, search codebases, and more
 
 ## 🏆 Version 2.1: Enterprise Production Ready
@@ -109,6 +110,62 @@ npm run test:debate "What's the best architecture for a real-time chat app?"
 - OpenRouter API key from [OpenRouter](https://openrouter.ai/keys)
 - Node.js 18+
 - For production: Generate secure HMAC secret
+- Optional: Gemini API key for prompt enhancement (get from [Google AI Studio](https://aistudio.google.com/app/apikey))
+
+## ✨ Prompt Enhancement (NEW in v2.2.2)
+
+The system automatically enhances vague or simple questions while preserving the original intent:
+
+**Before Enhancement:**
+```
+"How to optimize database?"
+```
+
+**After Enhancement (Gemini Flash):**
+```
+"How can I optimize slow database queries in a Node.js application?
+Consider:
+1) Query patterns causing slowdowns
+2) Indexing strategies
+3) Connection pooling
+4) Caching approaches
+Current issue: API response times over 2 seconds"
+```
+
+**Configuration (.env):**
+```bash
+GEMINI_API_KEY=your_key_here           # Required for enhancement
+ENABLE_PROMPT_ENHANCEMENT=true         # Default: true
+MIN_QUESTION_LENGTH=15                 # Minimum chars for enhancement
+```
+
+**How It Works:**
+1. **Validation** - Rejects too-simple questions (greetings, single words)
+2. **Analysis** - Gemini Flash evaluates question structure and technical context
+3. **Enhancement** - Adds specific details while preserving 100% of original intent
+4. **Caching** - Caches enhanced prompts to avoid redundant API calls
+
+**Test:** `npm run test:prompt-enhancer` (21/21 passing ✅)
+
+## 🧠 9 Specialized AI Models
+
+Each model brings unique expertise and has full MCP tool access:
+
+| Model | Role | Tokens | Specialization |
+|-------|------|--------|----------------|
+| **k1** - Claude Sonnet 4.5 | Architecture | 64K | Extended reasoning mode for system design |
+| **k2** - GPT-5 | Testing | 128K | Test strategies, debugging, QA |
+| **k3** - Qwen 3 Max | Algorithms | 32K | Algorithm optimization, data structures |
+| **k4** - Gemini 2.5 Pro | Integration | 65K | System integration, completeness checks |
+| **k5** - Grok 4 Fast | Fast Reasoning | 30K | Rapid analysis, quick decisions |
+| **k6** - GPT-5 Max Thinking | Deep Reasoning | 128K | Maximum reasoning capability |
+| **k7** - Kimi K2 Thinking | Autonomous Tools | 256K | 200-300 tool calls, deep autonomy |
+| **k8** - GLM-4.6 Exacto | Massive Context | 200K | Huge context windows, high accuracy |
+| **k9** - Polaris Alpha | Ultra-Fast | 128K | GPT-5.1-level quality in 3-5 seconds |
+
+**Intelligent Selection:** Gemini Coordinator automatically selects 3-5 optimal models based on question complexity and type.
+
+**Manual Selection:** Use model config syntax: `k1:2,k6,k9:3` (2 Claude instances, 1 GPT-5 Max, 3 Polaris instances)
 
 ## 🏗️ Architecture
 
@@ -116,34 +173,43 @@ npm run test:debate "What's the best architecture for a real-time chat app?"
 
 ```mermaid
 graph TD
-    A[User Question] --> B[MCP Server]
-    B --> C[Claude CLI Orchestrator]
-    C --> D1[k1: Claude Opus 4.1<br/>Architecture Expert]
-    C --> D2[k2: GPT-5<br/>Testing Expert]
-    C --> D3[k3: Qwen 3 Max<br/>Algorithm Expert]
-    C --> D4[k4: Gemini 2.5 Pro<br/>Integration Expert]
-    C --> D5[k5: Grok 4 Fast<br/>Fast Reasoning Expert]
+    A[User Question] --> A1[Prompt Enhancement<br/>Gemini Flash]
+    A1 --> B[Security Validation]
+    B --> C[Gemini Coordinator<br/>Intelligent Model Selection]
+    C --> D1[k1: Claude Sonnet 4.5<br/>64K tokens + thinking]
+    C --> D2[k2: GPT-5<br/>128K tokens]
+    C --> D3[k3: Qwen 3 Max<br/>32K tokens]
+    C --> D4[k4: Gemini 2.5 Pro<br/>65K tokens]
+    C --> D5[k5: Grok 4 Fast<br/>30K tokens]
+    C --> D6[k6: GPT-5 Max Think<br/>128K tokens]
+    C --> D7[k7: Kimi K2<br/>256K tokens + tools]
+    C --> D8[k8: GLM-4.6<br/>200K tokens]
+    C --> D9[k9: Polaris Alpha<br/>128K ultra-fast]
 
-    D1 --> E[MCP Tools Access]
+    D1 --> E[Full MCP Tools Access]
     D2 --> E
     D3 --> E
     D4 --> E
     D5 --> E
-    
+    D6 --> E
+    D7 --> E
+    D8 --> E
+    D9 --> E
+
     E --> F[File Operations]
     E --> G[Bash Commands]
     E --> H[Code Search]
     E --> I[Git/Docker/Web]
-    
-    D1 --> J[Round 1: Independent Analysis]
+
+    D1 --> J[Round 1: Parallel Analysis]
     D2 --> J
-    D3 --> J
-    D4 --> J
-    
-    J --> K[Semantic Scoring]
+    D6 --> J
+    D9 --> J
+
+    J --> K[Semantic Scoring<br/>LLM Evaluation]
     K --> L[Best Proposal Selection]
     L --> M[Round 2: Collaborative Improvement]
-    M --> N[Final Consensus Solution]
+    M --> N[Final Consensus + Confidence Score]
 ```
 
 ### Core Components
