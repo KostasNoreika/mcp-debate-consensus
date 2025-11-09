@@ -40,24 +40,28 @@ console.log('🔒 Security Configuration:', security.getSecurityStatus());
 
 // Model mapping for k1-k8 (updated with specified OpenRouter models)
 const modelMap = {
-  'k1': 'anthropic/claude-sonnet-4.5',  // Architecture expert (Claude Sonnet 4.5)
+  'k1': 'anthropic/claude-sonnet-4.5',  // Architecture expert (Claude Sonnet 4.5 with reasoning via API)
   'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
   'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
-  'k5': 'x-ai/grok-4-fast:free',        // Fast reasoning (Grok 4 Fast - free tier)
-  'k7': 'deepseek/deepseek-r1',         // Budget validator (DeepSeek R1 - MIT licensed)
-  'k8': 'z-ai/glm-4.5'                  // Open-source backup (GLM-4.5 - powerful MoE)
+  'k5': 'x-ai/grok-4-fast',             // Fast reasoning (Grok 4 Fast)
+  'k6': 'openai/gpt-5',                 // Max thinking expert (GPT-5 with maximum reasoning tokens)
+  'k7': 'moonshotai/kimi-k2-thinking',  // Deep reasoning + autonomous tool use (Kimi K2 Thinking - MoE, 256K context)
+  'k8': 'z-ai/glm-4.6:exacto',          // Open-source powerhouse (GLM-4.6 exacto - 200K context, high tool-use accuracy)
+  'k9': 'openrouter/polaris-alpha'      // Polaris Alpha (suspected GPT-5.1 - 128K tokens, very fast)
 };
 
-// Conservative token limits for each model (for cost-effectiveness)
+// Maximum token limits for each model (highest quality, no cost compromise)
 const maxTokensMap = {
-  'k1': 16000,   // Claude Opus 4.1 (max: 32k)
-  'k2': 32000,   // GPT-5 (max: 128k!)
-  'k3': 16000,   // Qwen 3 Max (max: 32k)
-  'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
-  'k5': 8000,    // Grok 4 Fast (free tier - conservative)
-  'k7': 8000,    // DeepSeek R1 (conservative for cost)
-  'k8': 8000     // GLM-4.5 (conservative for cost)
+  'k1': 64000,   // Claude Sonnet 4.5 :thinking (maximum output with reasoning)
+  'k2': 128000,  // GPT-5 (maximum output with thinking)
+  'k3': 32768,   // Qwen 3 Max (maximum output)
+  'k4': 65536,   // Gemini 2.5 Pro (maximum output)
+  'k5': 30000,   // Grok 4 Fast (maximum output - free tier)
+  'k6': 128000,  // GPT-5 Max Thinking (maximum reasoning capability)
+  'k7': 262144,  // Kimi K2 Thinking (256K context - autonomous tool use specialist)
+  'k8': 200000,  // GLM-4.6 (maximum output - massive context window)
+  'k9': 128000   // Polaris Alpha (maximum output - suspected GPT-5.1)
 };
 
 // Port mapping for each k instance
@@ -67,8 +71,10 @@ const portMap = {
   'k3': 3459,
   'k4': 3460,
   'k5': 3461,
+  'k6': 3462,
   'k7': 3463,
-  'k8': 3464
+  'k8': 3464,
+  'k9': 3465
 };
 
 function createProxyServer(kInstance) {
@@ -135,7 +141,16 @@ function createProxyServer(kInstance) {
         stream: false // Force non-streaming for simplicity
       };
 
-      console.log(`[${new Date().toISOString()}] ${kInstance} -> OpenRouter: ${model}`);
+      // Enable reasoning for thinking models
+      if (kInstance === 'k1') {
+        // Claude Sonnet 4.5 uses reasoning parameter
+        openRouterRequest.reasoning = {
+          effort: 'high'  // Maximum reasoning capability
+        };
+      }
+      // Note: k7 (Kimi K2) reasoning is enabled by default via :thinking suffix
+
+      console.log(`[${new Date().toISOString()}] ${kInstance} -> OpenRouter: ${model}${openRouterRequest.reasoning ? ' [reasoning: high]' : ''}`);
 
       // Sign outgoing request if enabled
       const requestHeaders = {
@@ -376,12 +391,16 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 console.log('\n📡 K-Proxy Server Status:');
-console.log('k1 (Claude Sonnet 4.5):  http://localhost:3457');
-console.log('k2 (GPT-5):              http://localhost:3458');
-console.log('k3 (Qwen 3 Max):         http://localhost:3459');
-console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460');
-console.log('k7 (DeepSeek R1):        http://localhost:3463');
-console.log('k8 (GLM-4.5):            http://localhost:3464');
+console.log('k1 (Claude 4.5 Think):   http://localhost:3457 [64K tokens + reasoning]');
+console.log('k2 (GPT-5):              http://localhost:3458 [128K tokens]');
+console.log('k3 (Qwen 3 Max):         http://localhost:3459 [32K tokens]');
+console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460 [65K tokens]');
+console.log('k5 (Grok 4 Fast):        http://localhost:3461 [30K tokens]');
+console.log('k6 (GPT-5 Max Think):    http://localhost:3462 [128K tokens]');
+console.log('k7 (Kimi K2 Thinking):   http://localhost:3463 [256K tokens + tools]');
+console.log('k8 (GLM-4.6):            http://localhost:3464 [200K tokens]');
+console.log('k9 (Polaris Alpha):      http://localhost:3465 [128K tokens]');
 console.log(`\nTimeout: ${DEBATE_TIMEOUT_MINUTES} minutes per request (configurable via DEBATE_TIMEOUT_MINUTES env var)`);
 console.log('Security Features: Request signing, Rate limiting, Security headers, Audit logging');
+console.log('All models configured with MAXIMUM token limits for highest quality');
 console.log('Press Ctrl+C to stop all proxies\n');

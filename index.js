@@ -2,6 +2,7 @@ import { ClaudeCliDebate } from './src/claude-cli-debate.js';
 import { IterativeDebateOrchestrator } from './src/iterative-debate-orchestrator.js';
 import { DebateHistory } from './src/history.js';
 import { Security } from './src/security.js';
+import { PromptEnhancer } from './src/prompt-enhancer.js';
 import { StreamHandler } from './src/streaming/stream-handler.js';
 import { ProgressTracker } from './src/streaming/progress-tracker.js';
 import { spawn } from 'child_process';
@@ -37,6 +38,7 @@ class DebateConsensusMCP {
         this.iterativeDebate = new IterativeDebateOrchestrator();
         this.history = new DebateHistory();
         this.security = new Security();
+        this.promptEnhancer = new PromptEnhancer();
         // Initialize streaming components
         this.streamHandler = new StreamHandler();
         this.progressTracker = new ProgressTracker({ verbose: true });
@@ -68,21 +70,57 @@ class DebateConsensusMCP {
             tools: [
                 {
                     name: 'debate',
-                    description: 'AUTOMATICALLY use when: complex technical questions, architecture design, debugging stubborn issues, optimization advice, technology choices, security analysis, or "debate this". Features: (1) INTELLIGENT MODEL SELECTION v2.0 - Gemini analyzes your question to auto-select optimal 3-5 models from 5 experts for 50% cost reduction, (2) PARALLEL INSTANCE SUPPORT - Use syntax like "k1:2,k2,k3:3" for multiple instances with different seeds/temperatures for enhanced consensus, (3) Full MCP tool access for all models. Best for: critical decisions, stubborn bugs, high-stakes technical choices.',
+                    description: `Multi-model AI consensus system with AUTOMATIC PROMPT ENHANCEMENT for complex technical questions.
+
+WHEN TO USE:
+✅ Architecture decisions ("Should I use microservices or monolithic architecture for...")
+✅ Debugging complex issues ("API returns 500 errors after Redis upgrade, logs show...")
+✅ Performance optimization ("How to reduce database query time from 3s to <500ms...")
+✅ Technology choices ("Compare React vs Vue for enterprise dashboard with real-time data...")
+✅ Security analysis ("Review authentication flow for potential vulnerabilities...")
+✅ Code review ("Analyze this implementation for edge cases and improvements...")
+
+❌ DO NOT USE FOR:
+- Simple factual questions ("What is React?")
+- Greetings or small talk
+- Already-answered documentation lookups
+- Single-word or one-liner questions
+
+FEATURES:
+1. AUTOMATIC PROMPT ENHANCEMENT - System analyzes and improves vague questions while preserving intent
+2. INTELLIGENT MODEL SELECTION v2.0 - Gemini analyzes question to auto-select optimal 3-5 models from 9 experts
+3. PARALLEL INSTANCE SUPPORT - Syntax: "k1:2,k3:3" for multiple instances with different seeds
+4. Full MCP tool access for all models - Can read files, search code, execute commands
+
+QUALITY EXAMPLES:
+✅ "How should I implement rate limiting in Express.js API? Need to handle 1000 req/s, support multiple rate tiers (free/premium), and persist limits across server restarts."
+✅ "Debug: PostgreSQL query taking 8 seconds. Query: SELECT * FROM users JOIN orders WHERE created_at > '2024-01-01'. Table has 10M rows. What indexing strategy would help?"
+✅ "Compare authentication approaches for SaaS app: JWT vs sessions vs OAuth. Consider: security, scalability to 100k users, mobile support, token refresh."
+
+Available models (k1-k9):
+- k1: Claude Sonnet 4.5 Thinking (architecture, 64K tokens)
+- k2: GPT-5 (testing, 128K tokens)
+- k3: Qwen 3 Max (algorithms, 32K tokens)
+- k4: Gemini 2.5 Pro (integration, 65K tokens)
+- k5: Grok 4 Fast (fast reasoning, 30K tokens)
+- k6: GPT-5 Max Thinking (deep thinking, 128K tokens)
+- k7: Kimi K2 Thinking (autonomous tools, 256K tokens)
+- k8: GLM-4.6 Exacto (massive context, 200K tokens)
+- k9: Polaris Alpha (ultra-fast, 128K tokens)`,
                     inputSchema: {
                         type: 'object',
                         properties: {
                             question: {
                                 type: 'string',
-                                description: 'The problem to solve or analyze'
+                                description: 'Complex technical question (15+ chars). System will automatically enhance vague questions. Example: "How to optimize slow database queries in Node.js with PostgreSQL?"'
                             },
                             projectPath: {
                                 type: 'string',
-                                description: 'Project path to analyze (optional, defaults to current)'
+                                description: 'Project path to analyze (optional, defaults to current working directory)'
                             },
                             modelConfig: {
                                 type: 'string',
-                                description: 'Manual model configuration (optional). Format: "k1:2,k2,k3:3" where k1:2 means 2 parallel instances of Claude Opus, k2 means 1 instance of GPT-5, k3:3 means 3 instances of Qwen. Available models: k1=Claude Opus (architecture), k2=GPT-5 (testing), k3=Qwen (algorithms), k4=Gemini (integration), k5=Grok (fast reasoning). Omit for intelligent auto-selection.'
+                                description: 'Manual model selection (optional). Format: "k1:2,k2,k3:3" where k1:2=2 parallel Claude instances, k2=1 GPT-5 instance, k3:3=3 Qwen instances. Omit for intelligent auto-selection (recommended).'
                             }
                         },
                         required: ['question']
@@ -180,8 +218,46 @@ class DebateConsensusMCP {
                     const sanitizedQuestion = this.security.validateQuestion(args.question);
                     const validatedPath = await this.security.validateProjectPath(args.projectPath);
                     this.security.checkRateLimit('debate', 5, 300000); // 5 debates per 5 minutes
-                    
-                    console.error('Starting synchronous debate for:', sanitizedQuestion);
+
+                    // Enhance question if enabled
+                    let enhancementResult;
+                    let finalQuestion = sanitizedQuestion;
+
+                    try {
+                        enhancementResult = await this.promptEnhancer.enhanceQuestion(sanitizedQuestion);
+
+                        if (enhancementResult.wasEnhanced) {
+                            finalQuestion = enhancementResult.enhanced;
+                            console.error('Question enhanced:', {
+                                original: sanitizedQuestion.substring(0, 100) + '...',
+                                enhanced: finalQuestion.substring(0, 100) + '...',
+                                changes: enhancementResult.changes
+                            });
+                        } else {
+                            console.error('Question already well-structured, no enhancement needed');
+                        }
+
+                        // Show warnings if any
+                        if (enhancementResult.validation?.warnings?.length > 0) {
+                            console.error('Question validation warnings:', enhancementResult.validation.warnings);
+                        }
+                    } catch (enhanceError) {
+                        // If enhancement fails with validation error, return it
+                        if (enhanceError.message.includes('too simple') || enhanceError.message.includes('validation failed')) {
+                            return {
+                                content: [{
+                                    type: 'text',
+                                    text: `❌ ${enhanceError.message}\n\nThis tool is designed for complex technical questions that benefit from multiple expert AI perspectives.\n\nGood examples:\n- "How should I implement caching in my Express API to reduce database load?"\n- "Compare microservices vs monolithic architecture for a high-traffic e-commerce platform"\n- "Debug: PostgreSQL query slow on 10M row table, need indexing strategy"\n\nNot suitable for:\n- Simple greetings or small talk\n- One-word questions\n- Already-answered documentation lookups`
+                                }]
+                            };
+                        }
+
+                        // Otherwise log warning and continue with original
+                        console.error('Enhancement failed, using original question:', enhanceError.message);
+                        finalQuestion = sanitizedQuestion;
+                    }
+
+                    console.error('Starting synchronous debate for:', finalQuestion.substring(0, 150) + '...');
 
                     // Log model configuration if provided
                     if (args.modelConfig) {
@@ -190,30 +266,47 @@ class DebateConsensusMCP {
 
                     // Run debate synchronously and wait for completion
                     const result = await this.debate.runDebate(
-                        sanitizedQuestion,
+                        finalQuestion,
                         validatedPath,
                         args.modelConfig
                     );
-                    
-                    // Save to history
+
+                    // Save to history (with original question and enhancement info)
                     const historyId = await this.history.save({
                         question: args.question,
+                        enhancedQuestion: enhancementResult?.wasEnhanced ? finalQuestion : undefined,
+                        enhancementInfo: enhancementResult?.wasEnhanced ? {
+                            changes: enhancementResult.changes,
+                            confidence: enhancementResult.confidence
+                        } : undefined,
                         ...result
                     });
-                    
+
                     return {
                         content: [{
                             type: 'text',
-                            text: this.formatResponse(args.question, result, historyId)
+                            text: this.formatResponse(args.question, result, historyId, enhancementResult)
                         }]
                     };
-                    
+
                 } catch (error) {
                     console.error('Debate error:', error);
+
+                    // Special handling for enhancement errors
+                    let errorMessage = `Error running debate: ${error.message}`;
+
+                    if (error.message.includes('GEMINI_API_KEY')) {
+                        errorMessage = `❌ Configuration Error: GEMINI_API_KEY is required for prompt enhancement.\n\nPlease add to your .env file:\nGEMINI_API_KEY=your_key_here\n\nGet your API key from: https://aistudio.google.com/app/apikey\n\nAlternatively, you can disable enhancement:\nENABLE_PROMPT_ENHANCEMENT=false`;
+                    } else if (error.message.includes('OPENROUTER_API_KEY')) {
+                        errorMessage = `❌ Configuration Error: OPENROUTER_API_KEY is required.\n\nPlease add to your .env file:\nOPENROUTER_API_KEY=your_key_here\n\nGet your API key from: https://openrouter.ai/keys`;
+                    } else if (error.message.includes('k-proxy-server')) {
+                        errorMessage = `❌ Proxy Error: ${error.message}\n\nMake sure k-proxy-server is running:\nnode k-proxy-server.js`;
+                    }
+
                     return {
                         content: [{
                             type: 'text',
-                            text: `Error running debate: ${error.message}\n\nMake sure you have:\n1. Set OPENROUTER_API_KEY in .env\n2. Run: ./setup-aliases.sh\n3. Source: source ~/.claude-models`
+                            text: errorMessage
                         }]
                     };
                 }
@@ -653,7 +746,7 @@ class DebateConsensusMCP {
         }
     }
     
-    formatResponse(question, result, historyId) {
+    formatResponse(question, result, historyId, enhancementResult = null) {
         // Prepare response with explanation about the question
         const solution = result.solution || 'No solution generated';
 
@@ -677,7 +770,16 @@ class DebateConsensusMCP {
         // Create a clean response focusing on the question
         let response = `✅ Debate Complete!${configText}
 
-**Question:** ${question}
+**Question:** ${question}`;
+
+        // Add enhancement info if question was enhanced
+        if (enhancementResult?.wasEnhanced) {
+            response += `
+**Enhanced Question:** ${enhancementResult.enhanced.substring(0, 200)}${enhancementResult.enhanced.length > 200 ? '...' : ''}
+**Improvements Made:** ${enhancementResult.changes.join(', ')}`;
+        }
+
+        response += `
 **History ID:** ${historyId}
 **Winner:** ${result.winner}
 **Score:** ${(typeof result.score === 'number') ? result.score.toFixed(2) :
@@ -701,7 +803,7 @@ class DebateConsensusMCP {
 ${solution}
 
 ---
-*Multi-model consensus with enhanced AI expert selection*`;
+*Multi-model consensus with automatic prompt enhancement and intelligent expert selection*`;
 
         return response;
     }

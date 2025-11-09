@@ -53,6 +53,9 @@ temp/
 *.db
 data/*.db
 
+# Runtime Learning Data
+data/*.json
+
 # Cache Files
 cache/*.json
 
@@ -64,6 +67,8 @@ cache/*.json
 
 # Test Files (obsolete test-*.js in root only, not examples/)
 /test-*.js
+/*-test.js
+/*-benchmark*.js
 
 # Codex AI Internal
 AGENTS.md
@@ -84,4 +89,9 @@ PROXY_SERVER_TEST_FIXES.md
 COVERAGE_IMPROVEMENT_REPORT.md
 RELEASE_SUMMARY_*.md
 simulated-debate-responses.md
-data/reports/*.md.claude.json
+data/reports/
+*CODING-BENCHMARK*.md
+/*ROCKETCHAT*.md
+
+# Test Output Files
+/*.txt

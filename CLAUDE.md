@@ -5,16 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 ## 🛑 CRITICAL RULES
 
 1. **NEVER CHANGE MODEL CONFIGURATIONS** without explicit user request:
-   - k1: `anthropic/claude-sonnet-4.5` - Architecture and system design
-   - k2: `openai/gpt-5` - Testing strategies and debugging
-   - k3: `qwen/qwen3-max` - Algorithm optimization
-   - k4: `google/gemini-2.5-pro` - Integration and completeness
-   - k5: `x-ai/grok-4-fast:free` - Fast reasoning and coding
-   - k7: `deepseek/deepseek-r1` - Deep analytical reasoning
-   - k8: `z-ai/glm-4.5` - Chinese AI perspective
+   - k1: `anthropic/claude-sonnet-4.5` (64K tokens) - Architecture with extended reasoning (enabled via API)
+   - k2: `openai/gpt-5` (128K tokens) - Testing strategies and debugging
+   - k3: `qwen/qwen3-max` (32K tokens) - Algorithm optimization
+   - k4: `google/gemini-2.5-pro` (65K tokens) - Integration and completeness
+   - k5: `x-ai/grok-4-fast` (30K tokens) - Fast reasoning and coding
+   - k6: `openai/gpt-5` (128K tokens) - Maximum thinking capability
+   - k7: `moonshotai/kimi-k2-thinking` (256K tokens) - Autonomous tool orchestration (200-300 tool calls)
+   - k8: `z-ai/glm-4.6:exacto` (200K tokens) - Massive context with high tool-use accuracy
+   - k9: `openrouter/polaris-alpha` (128K tokens) - Ultra-fast reasoning (suspected GPT-5.1)
 
-2. **DO NOT suggest model alternatives** - these were specifically chosen
-3. **If models return 404 errors**, fix naming/format but NEVER switch models
+2. **ALL models configured with MAXIMUM token limits** - no cost compromise, highest quality only
+3. **DO NOT suggest model alternatives** - these were specifically chosen
+4. **If models return 404 errors**, fix naming/format but NEVER switch models
 
 ## Essential Commands
 
@@ -70,6 +73,53 @@ npm run learning:status     # Check metrics
 npm run learning:report     # Performance report
 npm run learning:reset      # Reset data (careful!)
 ```
+
+## Prompt Enhancement (NEW in v2.3)
+
+**Automatic Question Improvement** - System now automatically enhances vague or simple questions while preserving intent.
+
+### How It Works
+
+1. **Validation** - Checks question length (15+ chars) and complexity
+2. **Enhancement** - Gemini Flash analyzes and improves structure (if enabled and API key configured)
+3. **Preservation** - Original intent is NEVER changed, only clarity improved
+4. **Rejection** - Too simple questions (greetings, one-word) are rejected with helpful suggestions
+
+### Configuration
+
+```bash
+# .env
+GEMINI_API_KEY=your_key_here              # Required for enhancement
+ENABLE_PROMPT_ENHANCEMENT=true            # Default: true
+MIN_QUESTION_LENGTH=15                    # Default: 15 chars
+```
+
+### Examples
+
+**Input:** "How to optimize database?"
+**Enhanced:** "How can I optimize slow database queries in a Node.js application? Consider query patterns, indexing strategies, and connection pooling."
+**Changes:** Added technology context (Node.js), specific areas to analyze
+
+**Input:** "Compare microservices and monolithic for high-traffic e-commerce 1M+ users"
+**Enhanced:** Same (already well-structured)
+**Changes:** None
+
+**Input:** "hello"
+**Result:** ❌ Rejected - "Question is too simple for multi-model debate"
+
+### Testing
+
+```bash
+npm run test:prompt-enhancer    # Unit tests for enhancement
+```
+
+### Tool Description Updated
+
+MCP tool now includes:
+- ✅ Clear examples of when to use/not use
+- ✅ Quality examples of good questions
+- ✅ All 9 models listed with capabilities
+- ✅ Automatic enhancement notice
 
 ## Architecture Overview
 

@@ -59,52 +59,66 @@ class ClaudeCliDebate {
     this.models = [
       {
         alias: 'k1',
-        name: 'Claude Opus 4.1',
+        name: 'Claude Sonnet 4.5 Thinking',
         role: 'Architecture',
-        expertise: 'System architecture and design patterns',
+        expertise: 'System architecture and design patterns with extended reasoning (64K tokens, thinking mode)',
         wrapper: path.join(__dirname, '..', 'k1-wrapper.sh')
       },
       {
         alias: 'k2',
         name: 'GPT-5',
         role: 'Testing',
-        expertise: 'Testing strategies, debugging, and quality assurance',
+        expertise: 'Testing strategies, debugging, and quality assurance (128K tokens)',
         wrapper: path.join(__dirname, '..', 'k2-wrapper.sh')
       },
       {
         alias: 'k3',
         name: 'Qwen 3 Max',
         role: 'Algorithms',
-        expertise: 'Algorithm optimization and data structures',
+        expertise: 'Algorithm optimization and data structures (32K tokens)',
         wrapper: path.join(__dirname, '..', 'k3-wrapper.sh')
       },
       {
         alias: 'k4',
         name: 'Gemini 2.5 Pro',
         role: 'Integration',
-        expertise: 'System integration and completeness verification',
+        expertise: 'System integration and completeness verification (65K tokens)',
         wrapper: path.join(__dirname, '..', 'k4-wrapper.sh')
       },
       {
         alias: 'k5',
         name: 'Grok 4 Fast',
         role: 'Fast Reasoning',
-        expertise: 'Rapid reasoning, coding optimization, and cost-efficient analysis',
+        expertise: 'Rapid reasoning, coding optimization, and cost-efficient analysis (30K tokens)',
         wrapper: path.join(__dirname, '..', 'k5-wrapper.sh')
       },
       {
+        alias: 'k6',
+        name: 'GPT-5 Max Thinking',
+        role: 'Maximum Reasoning',
+        expertise: 'Maximum thinking capability with extended reasoning (128K tokens)',
+        wrapper: path.join(__dirname, '..', 'k6-wrapper.sh')
+      },
+      {
         alias: 'k7',
-        name: 'DeepSeek R1',
-        role: 'Budget Validator',
-        expertise: 'Cost-effective validation and verification (MIT licensed)',
+        name: 'Kimi K2 Thinking',
+        role: 'Autonomous Tool Master',
+        expertise: 'Deep reasoning with autonomous tool orchestration (200-300 sequential tool calls, 256K tokens, MoE architecture)',
         wrapper: path.join(__dirname, '..', 'k7-wrapper.sh')
       },
       {
         alias: 'k8',
-        name: 'GLM-4.5',
-        role: 'Open-source Backup',
-        expertise: 'General reasoning and backup analysis (MIT licensed)',
+        name: 'GLM-4.6 Exacto',
+        role: 'Massive Context',
+        expertise: 'Massive context window with high tool-use accuracy (200K tokens, exacto provider, MIT licensed)',
         wrapper: path.join(__dirname, '..', 'k8-wrapper.sh')
+      },
+      {
+        alias: 'k9',
+        name: 'Polaris Alpha',
+        role: 'Ultra-Fast Reasoning',
+        expertise: 'Ultra-fast reasoning with suspected GPT-5.1 capabilities (128K tokens, very high performance)',
+        wrapper: path.join(__dirname, '..', 'k9-wrapper.sh')
       }
     ];
     

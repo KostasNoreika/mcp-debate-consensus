@@ -27,6 +27,7 @@
     "test:mcp-confidence": "node examples/test-mcp-confidence.js",
     "test:cache": "node examples/test-cache-direct.js",
     "test:retry": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest tests/unit/retry-handler.test.js --detectOpenHandles",
+    "test:prompt-enhancer": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest tests/unit/prompt-enhancer.test.js --detectOpenHandles",
     "test:performance": "node examples/test-performance-tracking.js",
     "test:security": "node examples/test-security.js",
     "test:client": "node examples/client-signing-example.js demo",
