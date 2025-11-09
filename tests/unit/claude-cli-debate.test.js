@@ -61,14 +61,14 @@ describe('ClaudeCliDebate', () => {
   describe('Constructor and Initialization', () => {
     test('should create debate instance with default configuration', () => {
       expect(debate).toBeDefined();
-      expect(debate.models).toHaveLength(7); // k1-k8 (k6 removed)
+      expect(debate.models).toHaveLength(9); // k1-k9
       expect(debate.timeout).toBe(60 * 60 * 1000); // 60 minutes default
       expect(debate.cachingEnabled).toBe(true);
       expect(debate.trackingEnabled).toBe(true);
     });
 
     test('should initialize all models with correct wrappers', () => {
-      const expectedModels = ['k1', 'k2', 'k3', 'k4', 'k5', 'k7', 'k8'];
+      const expectedModels = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9'];
       const actualAliases = debate.models.map(m => m.alias);
 
       expect(actualAliases).toEqual(expectedModels);
@@ -122,7 +122,7 @@ describe('ClaudeCliDebate', () => {
     test('should verify all wrapper scripts exist', async () => {
       await debate.initialize();
 
-      expect(fs.access).toHaveBeenCalledTimes(7); // All 7 models
+      expect(fs.access).toHaveBeenCalledTimes(9); // All 9 models
 
       debate.models.forEach(model => {
         expect(fs.access).toHaveBeenCalledWith(
