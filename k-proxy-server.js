@@ -48,7 +48,7 @@ const modelMap = {
   'k6': 'openai/gpt-5',                 // Max thinking expert (GPT-5 with maximum reasoning tokens)
   'k7': 'moonshotai/kimi-k2-thinking',  // Deep reasoning + autonomous tool use (Kimi K2 Thinking - MoE, 256K context)
   'k8': 'z-ai/glm-4.6:exacto',          // Open-source powerhouse (GLM-4.6 exacto - 200K context, high tool-use accuracy)
-  'k9': 'openrouter/polaris-alpha'      // Polaris Alpha (suspected GPT-5.1 - 128K tokens, very fast)
+  'k9': 'anthropic/claude-opus-4.1'     // Claude Opus 4.1 (Ultra reasoning - 200K tokens, production-ready)
 };
 
 // Maximum token limits for each model (highest quality, no cost compromise)
@@ -61,7 +61,7 @@ const maxTokensMap = {
   'k6': 128000,  // GPT-5 Max Thinking (maximum reasoning capability)
   'k7': 262144,  // Kimi K2 Thinking (256K context - autonomous tool use specialist)
   'k8': 200000,  // GLM-4.6 (maximum output - massive context window)
-  'k9': 128000   // Polaris Alpha (maximum output - suspected GPT-5.1)
+  'k9': 200000   // Claude Opus 4.1 (maximum output - ultra reasoning capability)
 };
 
 // Port mapping for each k instance
@@ -399,7 +399,7 @@ console.log('k5 (Grok 4 Fast):        http://localhost:3461 [30K tokens]');
 console.log('k6 (GPT-5 Max Think):    http://localhost:3462 [128K tokens]');
 console.log('k7 (Kimi K2 Thinking):   http://localhost:3463 [256K tokens + tools]');
 console.log('k8 (GLM-4.6):            http://localhost:3464 [200K tokens]');
-console.log('k9 (Polaris Alpha):      http://localhost:3465 [128K tokens]');
+console.log('k9 (Claude Opus 4.1):    http://localhost:3465 [200K tokens]');
 console.log(`\nTimeout: ${DEBATE_TIMEOUT_MINUTES} minutes per request (configurable via DEBATE_TIMEOUT_MINUTES env var)`);
 console.log('Security Features: Request signing, Rate limiting, Security headers, Audit logging');
 console.log('All models configured with MAXIMUM token limits for highest quality');

@@ -106,7 +106,7 @@ Available models (k1-k9):
 - k6: GPT-5 Max Thinking (deep thinking, 128K tokens)
 - k7: Kimi K2 Thinking (autonomous tools, 256K tokens)
 - k8: GLM-4.6 Exacto (massive context, 200K tokens)
-- k9: Polaris Alpha (ultra-fast, 128K tokens)`,
+- k9: Claude Opus 4.1 (ultra reasoning, 200K tokens)`,
                     inputSchema: {
                         type: 'object',
                         properties: {

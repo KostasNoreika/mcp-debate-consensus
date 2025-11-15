@@ -30,6 +30,7 @@
     "test:prompt-enhancer": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest tests/unit/prompt-enhancer.test.js --detectOpenHandles",
     "test:performance": "node examples/test-performance-tracking.js",
     "test:security": "node examples/test-security.js",
+    "test:all-models": "node examples/test-all-9-models.js",
     "test:client": "node examples/client-signing-example.js demo",
     "test:all": "npm run health && npm run test:security && npm test",
     "test:debug": "NODE_OPTIONS='--no-warnings --experimental-vm-modules --inspect-brk' jest --runInBand --detectOpenHandles",

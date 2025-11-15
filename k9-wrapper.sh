@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# k9 (Polaris Alpha) wrapper script for debate consensus system
+# k9 (Claude Opus 4.1) wrapper script for debate consensus system
 # Routes through OpenRouter proxy with full MCP tool access
-# Configured for ultra-fast reasoning with 128K output tokens
+# Configured for ultra reasoning with 200K output tokens
 
 export CLAUDE_CONFIG_DIR="$HOME/.claude-k9"
 export ANTHROPIC_BASE_URL="http://localhost:3465"

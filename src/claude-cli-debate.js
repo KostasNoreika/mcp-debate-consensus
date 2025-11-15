@@ -115,9 +115,9 @@ class ClaudeCliDebate {
       },
       {
         alias: 'k9',
-        name: 'Polaris Alpha',
-        role: 'Ultra-Fast Reasoning',
-        expertise: 'Ultra-fast reasoning with suspected GPT-5.1 capabilities (128K tokens, very high performance)',
+        name: 'Claude Opus 4.1',
+        role: 'Ultra Reasoning',
+        expertise: 'Ultra-high reasoning capability with massive context (200K tokens, production-ready, Anthropic flagship)',
         wrapper: path.join(__dirname, '..', 'k9-wrapper.sh')
       }
     ];

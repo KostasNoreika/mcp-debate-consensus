@@ -6,8 +6,8 @@
 
 🏆 **V2.2.2 NEW FEATURES:**
 - **🎯 Automatic Prompt Enhancement**: Gemini Flash-powered question improvement with intent preservation
-- **🧠 9 Specialized Models**: Added k6 (GPT-5 Max Thinking), k7 (Kimi K2), k8 (GLM-4.6), k9 (Polaris Alpha)
-- **⚡ Ultra-Fast Reasoning**: Polaris Alpha provides GPT-5.1-level quality in 3-5 seconds
+- **🧠 9 Specialized Models**: Added k6 (GPT-5 Max Thinking), k7 (Kimi K2), k8 (GLM-4.6), k9 (Claude Opus 4.1)
+- **⚡ Ultra Reasoning**: Claude Opus 4.1 provides Anthropic flagship quality with 200K context
 - **📊 Input Sanitization**: UX improvement - sanitizes dangerous patterns instead of rejecting (v2.2.2)
 - **✅ Test Reliability**: 98.8% → 99.5% pass rate (561/564 tests passing)
 - **📚 Enhanced Documentation**: Complete CLAUDE.md guide with all model specifications
@@ -20,7 +20,7 @@ Traditional single-model AI approaches have inherent limitations - biases, knowl
 ### Key Differentiators
 
 - **✨ Automatic Prompt Enhancement**: Gemini Flash analyzes and improves vague questions while preserving intent
-- **🧠 9 Specialized AI Models**: Claude, GPT-5, Qwen, Gemini, Grok, Kimi, GLM, Polaris for diverse expertise
+- **🧠 9 Specialized AI Models**: Claude, GPT-5, Qwen, Gemini, Grok, Kimi, GLM, Claude Opus for diverse expertise
 - **🎯 Intelligent Model Selection**: Gemini-powered coordinator automatically selects optimal models based on question analysis
 - **📊 Performance Tracking**: SQLite-based tracking across 70+ universal categories (not just programming)
 - **⚡ Parallel Processing**: Support for multiple instances per model (e.g., `k1:2,k2:3` for parallel analysis)
@@ -161,11 +161,11 @@ Each model brings unique expertise and has full MCP tool access:
 | **k6** - GPT-5 Max Thinking | Deep Reasoning | 128K | Maximum reasoning capability |
 | **k7** - Kimi K2 Thinking | Autonomous Tools | 256K | 200-300 tool calls, deep autonomy |
 | **k8** - GLM-4.6 Exacto | Massive Context | 200K | Huge context windows, high accuracy |
-| **k9** - Polaris Alpha | Ultra-Fast | 128K | GPT-5.1-level quality in 3-5 seconds |
+| **k9** - Claude Opus 4.1 | Ultra Reasoning | 200K | Anthropic flagship with production-ready quality |
 
 **Intelligent Selection:** Gemini Coordinator automatically selects 3-5 optimal models based on question complexity and type.
 
-**Manual Selection:** Use model config syntax: `k1:2,k6,k9:3` (2 Claude instances, 1 GPT-5 Max, 3 Polaris instances)
+**Manual Selection:** Use model config syntax: `k1:2,k6,k9:3` (2 Claude Sonnet instances, 1 GPT-5 Max, 3 Claude Opus instances)
 
 ## 🏗️ Architecture
 
@@ -184,7 +184,7 @@ graph TD
     C --> D6[k6: GPT-5 Max Think<br/>128K tokens]
     C --> D7[k7: Kimi K2<br/>256K tokens + tools]
     C --> D8[k8: GLM-4.6<br/>200K tokens]
-    C --> D9[k9: Polaris Alpha<br/>128K ultra-fast]
+    C --> D9[k9: Claude Opus 4.1<br/>200K ultra reasoning]
 
     D1 --> E[Full MCP Tools Access]
     D2 --> E
@@ -455,6 +455,10 @@ curl -X POST http://localhost:3457/v1/chat/completions -H "Content-Type: applica
 ```bash
 # Run comprehensive test suite (283 tests)
 npm test                     # 279 passed, 4 failed = 98.5% success rate
+
+# Test all 9 models with simple question
+npm run test:all-models     # Verify k1-k9 models are responding
+./test-all-9-models.sh      # Same test as bash script
 
 # Test debate functionality
 npm run test:debate "Your question here"

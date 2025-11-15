@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
    - k6: `openai/gpt-5` (128K tokens) - Maximum thinking capability
    - k7: `moonshotai/kimi-k2-thinking` (256K tokens) - Autonomous tool orchestration (200-300 tool calls)
    - k8: `z-ai/glm-4.6:exacto` (200K tokens) - Massive context with high tool-use accuracy
-   - k9: `openrouter/polaris-alpha` (128K tokens) - Ultra-fast reasoning (suspected GPT-5.1)
+   - k9: `anthropic/claude-opus-4.1` (200K tokens) - Ultra reasoning (Anthropic flagship, production-ready)
 
 2. **ALL models configured with MAXIMUM token limits** - no cost compromise, highest quality only
 3. **DO NOT suggest model alternatives** - these were specifically chosen
@@ -47,6 +47,10 @@ npm run test:performance     # Performance tracking
 npm run test:confidence      # Confidence scoring
 npm run test:cache          # Smart caching
 npm run test:learning       # ML learning system
+
+# Model testing
+npm run test:all-models      # Test all 9 models (k1-k9) with simple question
+./test-all-9-models.sh       # Same test as bash script
 
 # Direct testing
 npm run test:debate "question"    # Test debate directly
