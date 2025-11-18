@@ -54,7 +54,7 @@ const modelMap = {
 // Maximum token limits for each model (highest quality, no cost compromise)
 const maxTokensMap = {
   'k1': 64000,   // Claude Sonnet 4.5 :thinking (maximum output with reasoning)
-  'k2': 128000,  // GPT-5 (maximum output with thinking)
+  'k2': 128000,  // GPT-5.1-Codex (maximum output - optimized for coding)
   'k3': 32768,   // Qwen 3 Max (maximum output)
   'k4': 65536,   // Gemini 2.5 Pro (maximum output)
   'k5': 30000,   // Grok 4 Fast (maximum output - free tier)

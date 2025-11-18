@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# k2 (GPT-5) wrapper script for debate consensus system
+# k2 (GPT-5.1-Codex) wrapper script for debate consensus system
 # Routes through OpenRouter proxy with full MCP tool access
 
 export CLAUDE_CONFIG_DIR="$HOME/.claude-k2"
