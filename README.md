@@ -154,7 +154,7 @@ Each model brings unique expertise and has full MCP tool access:
 | Model | Role | Tokens | Specialization |
 |-------|------|--------|----------------|
 | **k1** - Claude Sonnet 4.5 | Architecture | 64K | Extended reasoning mode for system design |
-| **k2** - GPT-5 | Testing | 128K | Test strategies, debugging, QA |
+| **k2** - GPT-5.1-Codex | Testing & Coding | 128K | Advanced coding workflows, test strategies, debugging, QA |
 | **k3** - Qwen 3 Max | Algorithms | 32K | Algorithm optimization, data structures |
 | **k4** - Gemini 2.5 Pro | Integration | 65K | System integration, completeness checks |
 | **k5** - Grok 4 Fast | Fast Reasoning | 30K | Rapid analysis, quick decisions |
@@ -177,7 +177,7 @@ graph TD
     A1 --> B[Security Validation]
     B --> C[Gemini Coordinator<br/>Intelligent Model Selection]
     C --> D1[k1: Claude Sonnet 4.5<br/>64K tokens + thinking]
-    C --> D2[k2: GPT-5<br/>128K tokens]
+    C --> D2[k2: GPT-5.1-Codex<br/>128K tokens + coding]
     C --> D3[k3: Qwen 3 Max<br/>32K tokens]
     C --> D4[k4: Gemini 2.5 Pro<br/>65K tokens]
     C --> D5[k5: Grok 4 Fast<br/>30K tokens]

@@ -40,7 +40,7 @@ const log = {
 // All 9 models configuration
 const ALL_MODELS = [
   { alias: 'k1', name: 'Claude Sonnet 4.5 Thinking', port: 3457 },
-  { alias: 'k2', name: 'GPT-5', port: 3458 },
+  { alias: 'k2', name: 'GPT-5.1-Codex', port: 3458 },
   { alias: 'k3', name: 'Qwen 3 Max', port: 3459 },
   { alias: 'k4', name: 'Gemini 2.5 Pro', port: 3460 },
   { alias: 'k5', name: 'Grok 4 Fast', port: 3461 },

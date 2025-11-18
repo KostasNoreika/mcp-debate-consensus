@@ -152,7 +152,7 @@ class HealthCheck {
     // All 7 proxy servers with their ports and model aliases
     const proxyServers = [
       { alias: 'k1', port: 3457, model: 'Claude Sonnet 4.5' },
-      { alias: 'k2', port: 3458, model: 'GPT-5' },
+      { alias: 'k2', port: 3458, model: 'GPT-5.1-Codex' },
       { alias: 'k3', port: 3459, model: 'Qwen 3 Max' },
       { alias: 'k4', port: 3460, model: 'Gemini 2.5 Pro' },
       { alias: 'k5', port: 3461, model: 'Grok 4 Fast' },
@@ -327,7 +327,7 @@ class HealthCheck {
     // Test each model specified in the requirements
     const modelsToTest = [
       { name: 'k1', model: 'anthropic/claude-opus-4.1', description: 'Claude Opus 4.1' },
-      { name: 'k2', model: 'openai/gpt-5', description: 'GPT-5' },
+      { name: 'k2', model: 'openai/gpt-5.1-codex', description: 'GPT-5.1-Codex' },
       { name: 'k3', model: 'qwen/qwen3-max', description: 'Qwen 3 Max' },
       { name: 'k4', model: 'google/gemini-2.5-pro', description: 'Gemini 2.5 Pro' }
     ];
@@ -354,9 +354,9 @@ class HealthCheck {
   
   async testBasicAPI() {
     return new Promise((resolve) => {
-      // Test with GPT-5 since it's one of our main debate models
+      // Test with GPT-5.1-Codex since it's one of our main debate models
       const data = JSON.stringify({
-        model: 'openai/gpt-5',  // Using our actual k2 model for testing
+        model: 'openai/gpt-5.1-codex',  // Using our actual k2 model for testing
         messages: [{ role: 'user', content: 'Health check test' }],
         max_tokens: 20  // Minimum 20 tokens for health check
       });

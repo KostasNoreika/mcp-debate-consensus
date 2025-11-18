@@ -99,7 +99,7 @@ QUALITY EXAMPLES:
 
 Available models (k1-k9):
 - k1: Claude Sonnet 4.5 Thinking (architecture, 64K tokens)
-- k2: GPT-5 (testing, 128K tokens)
+- k2: GPT-5.1-Codex (advanced coding & testing, 128K tokens)
 - k3: Qwen 3 Max (algorithms, 32K tokens)
 - k4: Gemini 2.5 Pro (integration, 65K tokens)
 - k5: Grok 4 Fast (fast reasoning, 30K tokens)
@@ -120,7 +120,7 @@ Available models (k1-k9):
                             },
                             modelConfig: {
                                 type: 'string',
-                                description: 'Manual model selection (optional). Format: "k1:2,k2,k3:3" where k1:2=2 parallel Claude instances, k2=1 GPT-5 instance, k3:3=3 Qwen instances. Omit for intelligent auto-selection (recommended).'
+                                description: 'Manual model selection (optional). Format: "k1:2,k2,k3:3" where k1:2=2 parallel Claude instances, k2=1 GPT-5.1-Codex instance, k3:3=3 Qwen instances. Omit for intelligent auto-selection (recommended).'
                             }
                         },
                         required: ['question']

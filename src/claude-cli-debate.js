@@ -66,9 +66,9 @@ class ClaudeCliDebate {
       },
       {
         alias: 'k2',
-        name: 'GPT-5',
-        role: 'Testing',
-        expertise: 'Testing strategies, debugging, and quality assurance (128K tokens)',
+        name: 'GPT-5.1-Codex',
+        role: 'Testing & Coding',
+        expertise: 'Advanced coding workflows, testing strategies, debugging, and quality assurance (128K tokens, optimized for software engineering)',
         wrapper: path.join(__dirname, '..', 'k2-wrapper.sh')
       },
       {

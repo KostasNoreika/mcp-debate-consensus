@@ -41,7 +41,7 @@ console.log('🔒 Security Configuration:', security.getSecurityStatus());
 // Model mapping for k1-k8 (updated with specified OpenRouter models)
 const modelMap = {
   'k1': 'anthropic/claude-sonnet-4.5',  // Architecture expert (Claude Sonnet 4.5 with reasoning via API)
-  'k2': 'openai/gpt-5',                 // Testing expert (GPT-5)
+  'k2': 'openai/gpt-5.1-codex',         // Testing expert (GPT-5.1-Codex - optimized for coding workflows)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
   'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
   'k5': 'x-ai/grok-4-fast',             // Fast reasoning (Grok 4 Fast)
@@ -392,7 +392,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 console.log('\n📡 K-Proxy Server Status:');
 console.log('k1 (Claude 4.5 Think):   http://localhost:3457 [64K tokens + reasoning]');
-console.log('k2 (GPT-5):              http://localhost:3458 [128K tokens]');
+console.log('k2 (GPT-5.1-Codex):      http://localhost:3458 [128K tokens + coding]');
 console.log('k3 (Qwen 3 Max):         http://localhost:3459 [32K tokens]');
 console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460 [65K tokens]');
 console.log('k5 (Grok 4 Fast):        http://localhost:3461 [30K tokens]');

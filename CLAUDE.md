@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 1. **NEVER CHANGE MODEL CONFIGURATIONS** without explicit user request:
    - k1: `anthropic/claude-sonnet-4.5` (64K tokens) - Architecture with extended reasoning (enabled via API)
-   - k2: `openai/gpt-5` (128K tokens) - Testing strategies and debugging
+   - k2: `openai/gpt-5.1-codex` (128K tokens) - Advanced coding workflows, testing, and debugging
    - k3: `qwen/qwen3-max` (32K tokens) - Algorithm optimization
    - k4: `google/gemini-2.5-pro` (65K tokens) - Integration and completeness
    - k5: `x-ai/grok-4-fast` (30K tokens) - Fast reasoning and coding
