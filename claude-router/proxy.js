@@ -22,7 +22,7 @@ const modelMap = {
   'k1': 'anthropic/claude-opus-4.1',
   'k2': 'openai/gpt-5',
   'k3': 'qwen/qwen3-max',
-  'k4': 'google/gemini-2.5-pro',
+  'k4': 'google/gemini-3-pro-preview',
   'k5': 'x-ai/grok-4-fast:free'  // Grok 4 Fast (free tier on OpenRouter)
 };
 
@@ -31,7 +31,7 @@ const maxTokensMap = {
   'k1': 16000,   // Claude Opus 4.1 (max: 32k)
   'k2': 32000,   // GPT-5 (max: 128k!)
   'k3': 16000,   // Qwen 3 Max (max: 32k)
-  'k4': 32000,   // Gemini 2.5 Pro (max: 66k)
+  'k4': 65536,   // Gemini 3 Pro Preview (max: 64K output, 1M context)
   'k5': 32000    // Grok 4 Fast (max: 2M context, but limiting for cost)
 };
 

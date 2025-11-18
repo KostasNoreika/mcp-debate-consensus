@@ -308,7 +308,7 @@ describe('GeminiAdapter', () => {
     process.env.NODE_ENV = 'test';
 
     adapter = new GeminiAdapter({
-      modelId: 'gemini-2.5-pro',
+      modelId: 'gemini-3-pro-preview',
       apiKey: 'test-key'
     });
     // Set capabilities for test since detectCapabilities won't run properly in mock environment
@@ -330,7 +330,7 @@ describe('GeminiAdapter', () => {
 
   test('should build Gemini CLI arguments correctly', () => {
     const args = adapter.buildArgs({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3-pro-preview',
       temperature: 0.8,
       maxTokens: 4096,
       systemPrompt: 'Be creative',
@@ -341,7 +341,7 @@ describe('GeminiAdapter', () => {
     });
 
     expect(args).toContain('--model');
-    expect(args).toContain('gemini-2.5-pro');
+    expect(args).toContain('gemini-3-pro-preview');
     expect(args).toContain('--enable-code-execution');
     expect(args).toContain('--sandbox');
     expect(args).toContain('--enable-grounding');
@@ -488,11 +488,11 @@ describe('AdapterFactory', () => {
 
   test('should create Gemini adapter', async () => {
     const adapter = await factory.createAdapter('gemini', {
-      modelId: 'gemini-2.5-pro'
+      modelId: 'gemini-3-pro-preview'
     });
 
     expect(adapter).toBeInstanceOf(GeminiAdapter);
-    expect(adapter.model).toBe('gemini-2.5-pro');
+    expect(adapter.model).toBe('gemini-3-pro-preview');
   });
 
   test('should create Fallback adapter', async () => {

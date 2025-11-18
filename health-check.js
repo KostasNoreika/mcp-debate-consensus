@@ -329,7 +329,7 @@ class HealthCheck {
       { name: 'k1', model: 'anthropic/claude-opus-4.1', description: 'Claude Opus 4.1' },
       { name: 'k2', model: 'openai/gpt-5.1-codex', description: 'GPT-5.1-Codex' },
       { name: 'k3', model: 'qwen/qwen3-max', description: 'Qwen 3 Max' },
-      { name: 'k4', model: 'google/gemini-2.5-pro', description: 'Gemini 2.5 Pro' }
+      { name: 'k4', model: 'google/gemini-3-pro-preview', description: 'Gemini 3 Pro Preview' }
     ];
     
     let allModelsAccessible = true;

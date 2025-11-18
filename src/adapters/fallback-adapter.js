@@ -32,7 +32,7 @@ class FallbackAdapter extends BaseAdapter {
       'anthropic/claude-opus-4.1': 200000,
       'openai/gpt-5': 128000,
       'qwen/qwen3-max': 32000,
-      'google/gemini-2.5-pro': 1000000,
+      'google/gemini-3-pro-preview': 1048576,  // Gemini 3 Pro: 1M tokens
       'meta/llama-3-70b': 8192,
       'mistral/mistral-large': 32000
     };

@@ -120,7 +120,7 @@ models:
     auth:
       type: "api-key"
       source: "env:GEMINI_API_KEY"
-    model: "gemini-2.5-pro"
+    model: "gemini-3-pro-preview"
     role: "code-reviewer"
 
   - id: "claude-optimizer"

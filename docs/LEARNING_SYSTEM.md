@@ -318,7 +318,7 @@ class ModelRegistry {
     ['k1', { provider: 'anthropic', model: 'claude-opus-4.1', type: 'llm' }],
     ['k2', { provider: 'openai', model: 'gpt-5', type: 'llm' }],
     ['k3', { provider: 'qwen', model: 'qwen3-max', type: 'llm' }],
-    ['k4', { provider: 'google', model: 'gemini-2.5-pro', type: 'llm' }],
+    ['k4', { provider: 'google', model: 'gemini-3-pro-preview', type: 'llm' }],
     ['k5', { provider: 'x-ai', model: 'grok-4-fast', type: 'llm' }],
     // Future models
     ['k6', { provider: 'anthropic', model: 'claude-haiku-4', type: 'llm' }],

@@ -1,21 +1,21 @@
 {
   "cli_preferences": {
     "k1": {
-      "name": "Claude Opus 4.1",
+      "name": "Claude Sonnet 4.5 Thinking",
       "prefer_native": true,
       "native_cli": "claude",
       "native_available": true,
       "force_native": false,
       "fallback_to_proxy": true,
-      "proxy_model": "anthropic/claude-3-opus-20240229"
+      "proxy_model": "anthropic/claude-sonnet-4.5"
     },
     "k2": {
-      "name": "GPT-5",
+      "name": "GPT-5.1-Codex",
       "prefer_native": true,
       "native_cli": "codex",
       "native_available": true,
       "fallback_to_proxy": true,
-      "proxy_model": "openai/gpt-4o"
+      "proxy_model": "openai/gpt-5.1-codex"
     },
     "k3": {
       "name": "Qwen 3 Max",
@@ -24,16 +24,56 @@
       "native_available": false,
       "native_needs_config": true,
       "fallback_to_proxy": true,
-      "proxy_model": "qwen/qwen-2.5-72b-instruct"
+      "proxy_model": "qwen/qwen3-max"
     },
     "k4": {
-      "name": "Gemini 2.5 Pro",
+      "name": "Gemini 3 Pro Preview",
       "prefer_native": true,
       "native_cli": "gemini",
       "native_available": true,
       "native_api_key_env": "GEMINI_API_KEY",
       "fallback_to_proxy": true,
-      "proxy_model": "google/gemini-2.0-flash-exp"
+      "proxy_model": "google/gemini-3-pro-preview"
+    },
+    "k5": {
+      "name": "Grok 4 Fast",
+      "prefer_native": false,
+      "native_cli": null,
+      "native_available": false,
+      "fallback_to_proxy": true,
+      "proxy_model": "x-ai/grok-4-fast"
+    },
+    "k6": {
+      "name": "GPT-5 Max Thinking",
+      "prefer_native": true,
+      "native_cli": "codex",
+      "native_available": true,
+      "fallback_to_proxy": true,
+      "proxy_model": "openai/gpt-5"
+    },
+    "k7": {
+      "name": "Kimi K2 Thinking",
+      "prefer_native": false,
+      "native_cli": null,
+      "native_available": false,
+      "fallback_to_proxy": true,
+      "proxy_model": "moonshotai/kimi-k2-thinking"
+    },
+    "k8": {
+      "name": "GLM-4.6 Exacto",
+      "prefer_native": false,
+      "native_cli": null,
+      "native_available": false,
+      "fallback_to_proxy": true,
+      "proxy_model": "z-ai/glm-4.6:exacto"
+    },
+    "k9": {
+      "name": "Claude Opus 4.1",
+      "prefer_native": true,
+      "native_cli": "claude",
+      "native_available": true,
+      "fallback_to_proxy": true,
+      "proxy_model": "anthropic/claude-opus-4.1"
     }
   },
   "global_settings": {
@@ -45,7 +85,12 @@
       "k1": 3457,
       "k2": 3458,
       "k3": 3459,
-      "k4": 3460
+      "k4": 3460,
+      "k5": 3461,
+      "k6": 3462,
+      "k7": 3463,
+      "k8": 3464,
+      "k9": 3465
     }
   }
 }

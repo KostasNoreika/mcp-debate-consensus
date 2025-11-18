@@ -57,8 +57,8 @@ class GeminiAdapter extends BaseAdapter {
       const result = await this.runCLI('', { args: ['--version'] });
 
       // Check for model variants
-      if (result.stdout.includes('gemini-2.5-pro')) {
-        this.capabilities.contextWindow = 2000000; // 2M for latest
+      if (result.stdout.includes('gemini-3-pro')) {
+        this.capabilities.contextWindow = 1048576; // 1M for Gemini 3 Pro
       } else if (result.stdout.includes('gemini-pro')) {
         this.capabilities.contextWindow = 1000000;
       } else if (result.stdout.includes('gemini-flash')) {

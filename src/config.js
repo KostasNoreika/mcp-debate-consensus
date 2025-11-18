@@ -169,7 +169,7 @@ class ConfigManager {
       models: {
         kimi: { id: 'moonshot/kimi-k2-latest', provider: 'openrouter' },
         qwen: { id: 'qwen/qwen-2.5-coder-32b-instruct', provider: 'openrouter' },
-        gemini: { id: 'google/gemini-2.0-flash-thinking-exp-1219:free', provider: 'openrouter' }
+        gemini: { id: 'google/gemini-3-pro-preview', provider: 'openrouter' }
       },
       logging: { level: 'info' },
       features: { history: true, logging: true, validation: true }

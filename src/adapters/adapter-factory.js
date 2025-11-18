@@ -169,7 +169,7 @@ class AdapterFactory {
       available.push({
         type: 'gemini',
         name: 'Gemini CLI',
-        models: ['gemini-2.5-pro', 'gemini-pro', 'gemini-flash']
+        models: ['gemini-3-pro-preview', 'gemini-pro', 'gemini-flash']
       });
     }
 
