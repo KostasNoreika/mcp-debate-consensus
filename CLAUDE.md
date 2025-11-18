@@ -19,6 +19,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 3. **DO NOT suggest model alternatives** - these were specifically chosen
 4. **If models return 404 errors**, fix naming/format but NEVER switch models
 
+## 🔍 MODEL MONITORING & UPDATES
+
+### Where to Check for Latest OpenRouter Models
+
+**Primary Sources:**
+- **API Endpoint**: `GET https://openrouter.ai/api/v1/models` (JSON list of all available models)
+- **Documentation**: https://openrouter.ai/docs/api-reference/models/get-models
+- **Web Interface**: https://openrouter.ai/models (searchable, filterable)
+- **Provider Pages**: https://openrouter.ai/provider/{provider-name} (e.g., /provider/xai)
+
+**How to Check for Model Updates:**
+```bash
+# Query all models via API (requires API key)
+curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+  https://openrouter.ai/api/v1/models | jq '.data[] | {id, name}'
+
+# Search for specific provider (e.g., xAI/Grok models)
+curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+  https://openrouter.ai/api/v1/models | jq '.data[] | select(.id | contains("x-ai"))'
+```
+
+### Models Under Watch (Not Yet Available on OpenRouter)
+
+**Grok 4.1** - xAI (Released 2025-11-17)
+- Status: ⏳ Not yet available on OpenRouter (as of 2025-11-18)
+- Expected ID: `x-ai/grok-4.1` or `x-ai/grok-4.1-thinking`
+- Why upgrade: #1 LMArena (1483 Elo), 3x fewer hallucinations than Grok 4
+- Target replacement: k5 (currently `x-ai/grok-4-fast`)
+- Action: Monitor OpenRouter models page and update k5 when available
+
+**Checking for Grok 4.1:**
+```bash
+# Check if Grok 4.1 is now available
+curl -s https://openrouter.ai/api/v1/models | \
+  jq '.data[] | select(.id | contains("grok-4.1"))'
+```
+
 ## Essential Commands
 
 ### Setup & Starting Services
