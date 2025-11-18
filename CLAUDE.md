@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
    - k1: `anthropic/claude-sonnet-4.5` (64K tokens) - Architecture with extended reasoning (enabled via API)
    - k2: `openai/gpt-5.1-codex` (128K tokens) - Advanced coding workflows, testing, and debugging
    - k3: `qwen/qwen3-max` (32K tokens) - Algorithm optimization
-   - k4: `google/gemini-2.5-pro` (65K tokens) - Integration and completeness
+   - k4: `google/gemini-3-pro-preview` (1M tokens) - Integration and completeness
    - k5: `x-ai/grok-4-fast` (30K tokens) - Fast reasoning and coding
    - k6: `openai/gpt-5` (128K tokens) - Maximum thinking capability
    - k7: `moonshotai/kimi-k2-thinking` (256K tokens) - Autonomous tool orchestration (200-300 tool calls)
@@ -115,16 +115,18 @@ npm run learning:report     # Performance report
 npm run learning:reset      # Reset data (careful!)
 ```
 
-## Prompt Enhancement (NEW in v2.3)
+## Prompt Enhancement (UPGRADED to Gemini 3 Pro)
 
-**Automatic Question Improvement** - System now automatically enhances vague or simple questions while preserving intent.
+**Automatic Question Improvement** - System now automatically enhances vague or simple questions while preserving intent using Gemini 3 Pro's extended thinking.
 
 ### How It Works
 
 1. **Validation** - Checks question length (15+ chars) and complexity
-2. **Enhancement** - Gemini Flash analyzes and improves structure (if enabled and API key configured)
+2. **Enhancement** - Gemini 3 Pro analyzes and improves structure with deep reasoning (if enabled and API key configured)
 3. **Preservation** - Original intent is NEVER changed, only clarity improved
 4. **Rejection** - Too simple questions (greetings, one-word) are rejected with helpful suggestions
+
+**Performance:** 5-minute timeout, 64K max output tokens for complex reasoning
 
 ### Configuration
 

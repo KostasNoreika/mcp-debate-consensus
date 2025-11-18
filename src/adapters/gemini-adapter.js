@@ -16,7 +16,7 @@ class GeminiAdapter extends BaseAdapter {
       ...config
     });
 
-    this.model = config.model || 'gemini-2.5-pro';
+    this.model = config.model || 'gemini-3-pro-preview';
     this.apiKey = config.apiKey || (typeof process !== 'undefined' ? process.env?.GOOGLE_API_KEY : undefined);
     this.configPath = config.configPath || path.join(os.homedir(), '.gemini', 'config.json');
     this.sandboxMode = config.sandboxMode !== false; // Default to true for safety

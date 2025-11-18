@@ -43,7 +43,7 @@ const modelMap = {
   'k1': 'anthropic/claude-sonnet-4.5',  // Architecture expert (Claude Sonnet 4.5 with reasoning via API)
   'k2': 'openai/gpt-5.1-codex',         // Testing expert (GPT-5.1-Codex - optimized for coding workflows)
   'k3': 'qwen/qwen3-max',               // Algorithm expert (Qwen 3 Max)
-  'k4': 'google/gemini-2.5-pro',        // Integration expert (Gemini 2.5 Pro)
+  'k4': 'google/gemini-3-pro-preview',  // Integration expert (Gemini 3 Pro Preview)
   'k5': 'x-ai/grok-4-fast',             // Fast reasoning (Grok 4 Fast)
   'k6': 'openai/gpt-5',                 // Max thinking expert (GPT-5 with maximum reasoning tokens)
   'k7': 'moonshotai/kimi-k2-thinking',  // Deep reasoning + autonomous tool use (Kimi K2 Thinking - MoE, 256K context)
@@ -56,7 +56,7 @@ const maxTokensMap = {
   'k1': 64000,   // Claude Sonnet 4.5 :thinking (maximum output with reasoning)
   'k2': 128000,  // GPT-5.1-Codex (maximum output - optimized for coding)
   'k3': 32768,   // Qwen 3 Max (maximum output)
-  'k4': 65536,   // Gemini 2.5 Pro (maximum output)
+  'k4': 1048576, // Gemini 3 Pro Preview (1M context window)
   'k5': 30000,   // Grok 4 Fast (maximum output - free tier)
   'k6': 128000,  // GPT-5 Max Thinking (maximum reasoning capability)
   'k7': 262144,  // Kimi K2 Thinking (256K context - autonomous tool use specialist)
@@ -394,7 +394,7 @@ console.log('\n📡 K-Proxy Server Status:');
 console.log('k1 (Claude 4.5 Think):   http://localhost:3457 [64K tokens + reasoning]');
 console.log('k2 (GPT-5.1-Codex):      http://localhost:3458 [128K tokens + coding]');
 console.log('k3 (Qwen 3 Max):         http://localhost:3459 [32K tokens]');
-console.log('k4 (Gemini 2.5 Pro):     http://localhost:3460 [65K tokens]');
+console.log('k4 (Gemini 3 Pro):       http://localhost:3460 [1M tokens]');
 console.log('k5 (Grok 4 Fast):        http://localhost:3461 [30K tokens]');
 console.log('k6 (GPT-5 Max Think):    http://localhost:3462 [128K tokens]');
 console.log('k7 (Kimi K2 Thinking):   http://localhost:3463 [256K tokens + tools]');

@@ -114,7 +114,7 @@ export class PromptEnhancer {
     }
 
     try {
-      // Use Gemini Flash for fast enhancement
+      // Use Gemini 3 Pro for enhanced reasoning
       const enhancementPrompt = `You are a prompt enhancement specialist. Your task is to improve technical questions while preserving their exact original intent.
 
 INPUT QUESTION:
@@ -177,7 +177,7 @@ OUTPUT: {
 Now enhance this question:`;
 
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${this.geminiApiKey}`,
         {
           contents: [{
             parts: [{
@@ -186,13 +186,13 @@ Now enhance this question:`;
           }],
           generationConfig: {
             temperature: 0.3, // Lower temperature for consistent enhancement
-            maxOutputTokens: 1000,
+            maxOutputTokens: 65536, // Gemini 3 Pro max: 64K tokens (extended thinking mode)
             responseMimeType: 'application/json'
           }
         },
         {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 10000 // 10 second timeout
+          timeout: 300000 // 5 minute timeout (Gemini 3 Pro uses extended thinking)
         }
       );
 

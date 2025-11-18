@@ -93,7 +93,7 @@ const MODEL_CONFIGS = {
     specialties: ['tech/programming/algorithms', 'science/data-analysis', 'science/mathematics', 'general/factual']
   },
   k4: {
-    name: 'Gemini 2.5 Pro',
+    name: 'Gemini 3 Pro Preview',
     alias: 'k4',
     wrapper: path.join(__dirname, '..', 'k4-wrapper.sh'),
     role: 'Integration & Coordination',
