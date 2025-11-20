@@ -32,6 +32,7 @@
       "native_cli": "gemini",
       "native_available": true,
       "native_api_key_env": "GEMINI_API_KEY",
+      "native_use_default_model": true,
       "fallback_to_proxy": true,
       "proxy_model": "google/gemini-3-pro-preview"
     },

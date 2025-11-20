@@ -1,3 +1,0 @@
-#!/bin/bash
-# k1 - Claude Opus 4.1 adaptive wrapper
-exec "$(dirname "$0")/k-adaptive-wrapper.sh" k1 "$@"

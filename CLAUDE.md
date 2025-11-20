@@ -56,6 +56,80 @@ curl -s https://openrouter.ai/api/v1/models | \
   jq '.data[] | select(.id | contains("grok-4.1"))'
 ```
 
+## 🔄 ADAPTIVE CLI ROUTING
+
+**Intelligent CLI Selection** - System automatically chooses the best CLI for each model with fallback to proxy:
+
+### How It Works
+
+All k1-k9 wrappers now use `k-adaptive-wrapper.sh` which intelligently routes to:
+- **Native CLI** when available (Codex for OpenAI, Gemini for Google, Claude for Anthropic)
+- **Proxy fallback** when native CLI unavailable or not authenticated
+- **Proxy only** for models without native CLI (k5, k7, k8)
+
+### Native CLI Support Matrix
+
+| Model | Native CLI | Status | Fallback |
+|-------|-----------|---------|----------|
+| k1 (Claude Sonnet 4.5) | `claude` | ✅ Available | Proxy on port 3457 |
+| k2 (GPT-5.1-Codex) | `codex` | ✅ Available | Proxy on port 3458 |
+| k3 (Qwen 3 Max) | `qwen` | ⚠️ Needs config | Proxy on port 3459 |
+| k4 (Gemini 3 Pro) | `gemini` | ✅ Available | Proxy on port 3460 |
+| k5 (Grok 4 Fast) | N/A | ❌ Proxy only | Proxy on port 3461 |
+| k6 (GPT-5 Max) | `codex` | ✅ Available | Proxy on port 3462 |
+| k7 (Kimi K2) | N/A | ❌ Proxy only | Proxy on port 3463 |
+| k8 (GLM-4.6) | N/A | ❌ Proxy only | Proxy on port 3464 |
+| k9 (Claude Opus 4.1) | `claude` | ✅ Available | Proxy on port 3465 |
+
+### Benefits of Native CLI
+
+- ✅ **Authentic behavior** - Direct API access without proxy translation
+- ✅ **Lower latency** - Fewer hops in request chain
+- ✅ **Better tool use** - Each CLI optimized for its API
+- ✅ **Cost efficiency** - Direct billing without proxy overhead
+
+### Configuration
+
+Native CLI preferences are managed in `cli-config.json`:
+```json
+{
+  "cli_preferences": {
+    "k2": {
+      "prefer_native": true,
+      "native_cli": "codex",
+      "fallback_to_proxy": true
+    }
+  }
+}
+```
+
+### Testing Adaptive Routing
+
+```bash
+# Test native CLI usage (should show "Using native X CLI")
+./k1-wrapper.sh --version  # Claude CLI
+./k2-wrapper.sh --version  # Codex CLI
+./k4-wrapper.sh --version  # Gemini CLI
+
+# Test fallback (temporarily hide CLI from PATH)
+PATH=/usr/bin:/bin ./k2-wrapper.sh --version  # Should fallback to proxy
+
+# Test proxy-only models
+./k5-wrapper.sh --version  # Always uses proxy
+```
+
+### Installing Native CLIs
+
+```bash
+# Install all available CLIs
+./install-all-cli.sh
+
+# Individual installation
+npm install -g @openai/codex     # For k2, k6
+npm install -g @google/gemini-cli # For k4
+# Claude CLI from https://claude.ai/download
+```
+
 ## Essential Commands
 
 ### Setup & Starting Services

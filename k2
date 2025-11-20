@@ -1,3 +1,0 @@
-#!/bin/bash
-# k2 - GPT-5 adaptive wrapper
-exec "$(dirname "$0")/k-adaptive-wrapper.sh" k2 "$@"

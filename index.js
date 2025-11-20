@@ -101,7 +101,7 @@ Available models (k1-k9):
 - k1: Claude Sonnet 4.5 Thinking (architecture, 64K tokens)
 - k2: GPT-5.1-Codex (advanced coding & testing, 128K tokens)
 - k3: Qwen 3 Max (algorithms, 32K tokens)
-- k4: Gemini 2.5 Pro (integration, 65K tokens)
+- k4: Gemini 3.0 Pro (integration, 1M tokens)
 - k5: Grok 4 Fast (fast reasoning, 30K tokens)
 - k6: GPT-5 Max Thinking (deep thinking, 128K tokens)
 - k7: Kimi K2 Thinking (autonomous tools, 256K tokens)

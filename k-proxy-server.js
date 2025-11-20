@@ -133,6 +133,7 @@ function createProxyServer(kInstance) {
       }
 
       // Transform Claude format to OpenRouter format
+      // No system prompt modification - let the model identify itself naturally
       const openRouterRequest = {
         model: model,
         messages: req.body.messages,
@@ -180,6 +181,15 @@ function createProxyServer(kInstance) {
           timeout: TIMEOUT_MS
         }
       );
+
+      // Log which model OpenRouter actually used
+      const usedModel = response.headers['x-openrouter-model'] || response.data.model || model;
+      console.log(`[${new Date().toISOString()}] ${kInstance} -> OpenRouter used model: ${usedModel}`);
+
+      // Verify we got the correct model (warn if different)
+      if (usedModel !== model) {
+        console.warn(`⚠️  WARNING: Requested ${model} but OpenRouter used ${usedModel}`);
+      }
 
       // Transform OpenRouter response to Claude format
       if (!response.data.choices || !response.data.choices[0]) {

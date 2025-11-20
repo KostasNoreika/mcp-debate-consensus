@@ -1,3 +1,0 @@
-#!/bin/bash
-# k4 - Gemini 2.5 Pro adaptive wrapper
-exec "$(dirname "$0")/k-adaptive-wrapper.sh" k4 "$@"

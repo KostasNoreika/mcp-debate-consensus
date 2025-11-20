@@ -96,3 +96,21 @@ data/reports/
 
 # Test Output Files
 /*.txt
+
+# Backup Files (Added by cleanup Phase A)
+*.backup
+*.bak
+
+# Test Artifacts - Stricter Patterns (Added by cleanup Phase A)
+*-response.txt
+*-output.txt
+validation-*.log
+test-performance.db
+
+# Runtime State (Added by cleanup Phase A)
+.claude-k*/
+runtime/
+
+# Archive Directory (Added by cleanup Phase A)
+archive/
+.claude.json
